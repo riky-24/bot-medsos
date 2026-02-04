@@ -1,469 +1,186 @@
-# Bot Medsos - Telegram Game Top-Up Bot
+# 🤖 Bot Medsos - Telegram Game Top-Up Automation
 
-> **Bot Telegram untuk automasi top-up game** dengan arsitektur hexagonal (ports & adapters)
+![Node.js](https://img.shields.io/badge/Node.js-v20-green?style=for-the-badge&logo=node.js)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v16-blue?style=for-the-badge&logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?style=for-the-badge&logo=docker)
+![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)
 
-## 📋 Daftar Isi
-
-- [Overview](#overview)
-- [Arsitektur](#arsitektur)
-- [Tech Stack](#tech-stack)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Deployment](#deployment)
-- [Environment Variables](#environment-variables)
-- [Troubleshooting](#troubleshooting)
-- [Scripts](#scripts)
+> **Enterprise-grade Telegram Bot** for automated game top-ups, built with Hexagonal Architecture and Docker orchestration.
 
 ---
 
-## Overview
+## 📋 Table of Contents
 
-Bot Medsos adalah Telegram bot yang memungkinkan user untuk membeli top-up game (Mobile Legends, Free Fire, dll) melalui chat Telegram. Bot ini terintegrasi dengan:
-
-- **VIPReseller** - Game provider untuk digital products
-- **Sakurupiah** - Payment gateway
-- **PostgreSQL** - Database untuk user, transactions, sessions
-- **Cloudflare Tunnel** - Secure tunnel untuk webhook callbacks
-
-### Fitur Utama
-
-✅ Browse dan pilih game dari catalog  
-✅ Input player ID dengan validasi nickname  
-✅ Multiple payment channels (QRIS, E-Wallet, Bank Transfer)  
-✅ Automatic order processing  
-✅ Session management untuk shopping cart  
-✅ Admin notifications  
-✅ Transaction history  
+- [✨ Key Features](#-key-features)
+- [🏗️ System Architecture](#-system-architecture)
+- [🛠️ Tech Stack](#-tech-stack)
+- [🚀 Quick Start](#-quick-start)
+- [🐳 Deployment (Docker)](#-deployment-docker)
+- [🧪 Testing & Development](#-testing--development)
+- [📝 Configuration](#-configuration)
+- [🤝 Contributing](#-contributing)
 
 ---
 
-## Arsitektur
+## ✨ Key Features
 
-Project ini menggunakan **Hexagonal Architecture** (Ports & Adapters Pattern):
+- **🛍️ Digital Product Marketplace**: Seamless integration with **VIPReseller** for games like Mobile Legends, Free Fire, and PUBG.
+- **💳 Multi-Channel Payments**: Automated payments via **Sakurupiah** (QRIS, E-Wallet, VA).
+- **🛡️ Secure Webhooks**: Protected via **Cloudflare Tunnel** and **Nginx Reverse Proxy**.
+- **📦 Session Management**: Stateful user sessions for shopping cart and transaction flows.
+- **⚡ High Performance**: Optimized connection pooling via Prisma & PostgreSQL.
+- **🔍 Hexagonal Design**: Clean separation of concerns (Domain vs Infrastructure).
 
+---
+
+## 🏗️ System Architecture
+
+This project adheres to **Hexagonal Architecture (Ports & Adapters)** to ensure maintainability and testability.
+
+### High-Level Flow
+
+```mermaid
+graph LR
+    User((User)) -->|Telegram| Bot[Bot App]
+    Bot -->|Domain Logic| Core[Core Service]
+    Core -->|Port| DB[(PostgreSQL)]
+    Core -->|Port| Game[VIPReseller]
+    Core -->|Port| Payment[Sakurupiah]
 ```
+
+### Directory Structure
+
+```bash
 bot-medsos/
-├── core/                    # ⬢ Domain Layer (Business Logic)
-│   ├── applications/        # Use Cases & Application Services
-│   │   └── bot-telegram/    # Telegram Bot Application
-│   └── shared/              # Shared Domain Services
-│       ├── services/        # Domain Services
-│       ├── repositories/    # Repository Interfaces (Ports)
-│       └── entities/        # Domain Models
-├── adapters/                # 🔌 Infrastructure Layer (Adapters)
-│   ├── bot-telegram/        # Telegram API Adapter
-│   ├── shared/
-│   │   ├── database/        # Prisma Database Adapter
-│   │   ├── game-providers/  # VIPReseller Adapter
-│   │   └── payment/         #Sakurupiah Payment Adapter
-│   └── infrastructure/      # Config & Utilities
-├── server/                  # 🌐 HTTP Server Entry Point
-│   └── app.js               # Express server + DI composition root
-├── scripts/                 # 🛠️ Utility & Migration Scripts
-├── prisma/                  # 💾 Database Schema & Migrations
-└── docker/                  # 🐳 Containerization
+├── core/                    # 🟢 Domain Layer (Business Logic ONLY)
+│   ├── services/            # Pure domain logic
+│   ├── entities/            # Data models
+│   └── applications/        # Use cases
+├── adapters/                # 🔌 Infrastructure Layer (External Comms)
+│   ├── platform/            # Cloudflare, System adapters
+│   ├── shared/              # Database, API clients
+│   └── bot-telegram/        # Telegram interface
+├── infrastructure/          # 🏗️ DevOps & Configuration
+│   ├── docker/              # Docker setup
+│   ├── nginx/               # Nginx setup
+│   └── cloudflare-tunnel/   # Tunnel config
+└── server/                  # 🚀 Application Entry Point
 ```
 
-### Layer Responsibilities
+---
 
-| Layer | Direktori | Tanggung Jawab |
-|-------|-----------|----------------|
-| **Domain** | `core/` | Business logic, entities, use cases |
-| **Application** | `core/applications/` | Orchestration, bot handlers |
-| **Infrastructure** | `adapters/` | External integrations (DB, APIs, Telegram) |
-| **Entry Point** | `server/app.js` | Dependency injection, HTTP server |
+## 🛠️ Tech Stack
+
+| Component | Technology | Description |
+|-----------|------------|-------------|
+| **Runtime** | Node.js v20 | ES Modules, Native Fetch |
+| **Framework** | Express v5 | Webhook handling |
+| **Database** | PostgreSQL 16 | Relational data store |
+| **ORM** | Prisma 5.22 | Type-safe database client |
+| **Infra** | Docker Compose | Orchestration (App, DB, Nginx, Tunnel) |
+| **Gateway** | Nginx / BunkerWeb | Reverse Proxy & WAF |
 
 ---
 
-## Tech Stack
+## 🚀 Quick Start
 
-### Runtime & Framework
-- **Node.js v20** (ES Modules)
-- **Express v5** - HTTP server untuk webhooks
-- **Telegraf** - Telegram Bot framework (via custom adapter)
+### Prerequisites
+- Node.js v20+
+- PostgreSQL (or Docker)
+- Telegram Bot Token
 
-### Database & ORM
-- **PostgreSQL 16** - Relational database
-- **Prisma 5.22** - Type-safe ORM
-
-### External APIs
-- **Telegram Bot API** - Bot interface
-- **VIPReseller API** - Game provider
-- **Sakurupiah API** - Payment gateway
-- **Cloudflare Tunnel** - Webhook tunneling
-
-### DevOps
-- **Podman/Docker** - Containerization
-- **Podman Compose** - Multi-container orchestration
-- **PM2** - Process manager (optional, for non-Docker deployment)
-- **Nginx** - Reverse proxy
-
----
-
-## Prerequisites
-
-### System Requirements
-- **OS**: Linux (Fedora/RHEL/Ubuntu) or macOS
-- **Container Runtime**: Podman (recommended) or Docker
-- **Node.js**: v20+ (jika run tanpa Docker)
-- **Database**: PostgreSQL 16+ (auto-deployed via compose)
-
-### Akun & API Keys
-- [x] Telegram Bot Token (dari [@BotFather](https://t.me/BotFather))
-- [x] VIPReseller API Key & ID
-- [x] Sakurupiah API Key & ID
-- [x] Cloudflare Tunnel Token (**PENTING** untuk production dengan webhook)
-- [x] Domain/subdomain (untuk webhook URL)
-
----
-
-## Installation
-
-### 1. Clone Repository
+### 1. Installation
 
 ```bash
-cd ~/Documents
-# Asumsi sudah ada folder bot-medsos
+git clone https://github.com/username/bot-medsos.git
 cd bot-medsos
-```
-
-### 2. Install Dependencies (Jika Run Lokal Tanpa Docker)
-
-```bash
 npm install
 ```
 
-### 3. Setup Environment Variables
+### 2. Configuration
 
-Copy file `.env.example` (jika ada) atau create `.env` baru:
-
-```bash
-cp .env.example .env
-# Atau create manual
-nano .env
-```
-
-Isi semua variabel (lihat section [Environment Variables](#environment-variables))
-
-### 4. Generate Prisma Client
+Set up your environments. We use **environment-specific** configuration files:
 
 ```bash
-npm run db:generate
+cp .env.example .env.development
+# Edit .env.development with your local credentials
 ```
 
-### 5. Database Migration (Lokal Development)
-
-**Option A: Using Docker Compose** (Recommended)
+### 3. Run Locally (Development)
 
 ```bash
-# Database otomatis di-setup saat container start
-podman-compose up -d db
+# Starts app with .env.development
+npm run start:dev
 ```
 
-**Option B: Manual Migration**
-
-```bash
-# Pastikan PostgreSQL running di localhost:5432
-npm run db:migrate
-```
-
----
-
-## Deployment
-
-### Option 1: Docker/Podman Compose (Recommended untuk Production)
-
-#### Build & Start Services
-
-```bash
-# Build images
-podman-compose build --no-cache
-
-# Start all services (app + db + nginx + tunnel)
-podman-compose up -d
-
-# Check logs
-podman logs -f bot-medsos-app
-```
-
-#### Services yang Di-deploy
-
-| Service | Container Name | Port | Description |
-|---------|---------------|------|-------------|
-| `app` | bot-medsos-app | 3000 | Node.js application |
-| `db` | bot-medsos-db | 5432 | PostgreSQL database |
-| `nginx` | bot-medsos-nginx | 8080→80 | Reverse proxy |
-| `tunnel` | bot-medsos-tunnel | - | Cloudflare tunnel |
-
-#### Health Check
-
-```bash
-# Via nginx (from outside)
-curl http://localhost:8080/health
-
-# Direct to app (internal)
-curl http://localhost:3000/health
-
-# Expected response
-{
-  "status": "ok",
-  "uptime": 123.45,
-  "database": true
-}
-```
-
-#### Stop Services
-
-```bash
-podman-compose down
-```
-
-#### Cleanup Images
-
-```bash
-# Remove dangling images
-podman image prune -f
-
-# Remove all unused images
-podman image prune -a -f
-```
-
-### Option 2: PM2 (Untuk Development atau Non-Docker Deployment)
-
-```bash
-# Start dengan PM2
-npm run start:prod
-
-# Check logs
-npm run pm2:logs
-
-# Stop
-pm2 stop bot-medsos
-
-# Restart
-pm2 restart bot-medsos
-```
-
----
-
-## Environment Variables
-
-Create file `.env` di root project dengan isi berikut:
-
-```bash
-# ========================================
-# DATABASE
-# ========================================
-# Format: postgresql://USER:PASSWORD@HOST:PORT/DATABASE
-# Docker: use 'db' as host
-# Local: use 'localhost' as host
-DATABASE_URL="postgresql://botuser:roman@db:5432/botmedsos?connection_limit=20&pool_timeout=10"
-
-# ========================================
-# GAME PROVIDER - VIPReseller
-# ========================================
-VIPRESELLER_API_KEY=your_vipreseller_api_key_here
-VIPRESELLER_API_ID=your_vipreseller_api_id_here
-
-# ========================================
-# PAYMENT GATEWAY - Sakurupiah
-# ========================================
-SAKURUPIAH_API_ID=your_sakurupiah_merchant_id
-SAKURUPIAH_API_KEY=your_sakurupiah_api_key
-
-# ========================================
-# TELEGRAM BOT
-# ========================================
-# Get from @BotFather
-TELEGRAM_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
-
-# Webhook secret untuk validate request dari Telegram
-# Generate random string (min 32 char)
-TELEGRAM_WEBHOOK_SECRET=random_secure_string_min_32_characters_long
-
-# ========================================
-# APPLICATION
-# ========================================
-# Public URL untuk webhook (HARUS HTTPS)
-# Gunakan Cloudflare Tunnel atau Ngrok untuk development
-APP_BASE_URL=https://yourdomain.com
-
-# Admin Telegram Chat ID untuk notifikasi error
-# Cara dapat ID: chat ke @userinfobot
-ADMIN_CHAT_ID=123456789
-
-# ========================================
-# CLOUDFLARE TUNNEL
-# ========================================
-# Get from Cloudflare Zero Trust Dashboard
-CLOUDFLARE_TUNNEL_TOKEN=your_cloudflare_tunnel_token_here
-```
-
-### Cara Mendapatkan Environment Variables
-
-| Variable | Cara Mendapatkan |
-|----------|-----------------|
-| `TELEGRAM_TOKEN` | Chat [@BotFather](https://t.me/BotFather) → /newbot |
-| `ADMIN_CHAT_ID` | Chat [@userinfobot](https://t.me/userinfobot) |
-| `VIPRESELLER_API_*` | Daftar di VIPReseller untuk merchant account |
-| `SAKURUPIAH_API_*` | Daftar di Sakurupiah merchant panel |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Zero Trust → Access → Tunnels |
-
----
-
-## Troubleshooting
-
-### Container tidak start / Database error
-
-**Problem**: Error `The table public.payment_channels does not exist`
-
-**Solution**: Database migrations belum jalan. Check logs:
-
-```bash
-podman logs bot-medsos-app
-
-# Seharusnya ada log:
-# 🔧 Docker Entrypoint: Starting initialization...
-# ✅ Database is ready!
-# 🔄 Running database migrations...
-# ✅ Migrations completed!
-```
-
-Jika tidak ada, rebuild container:
-
-```bash
-podman-compose down
-podman-compose build --no-cache app
-podman-compose up -d
-```
-
-### Webhook tidak terima callback
-
-**Problem**: Telegram tidak bisa hit webhook
-
-**Checklist**:
-1. ✅ `APP_BASE_URL` harus **HTTPS** (wajib untuk Telegram)
-2. ✅ Cloudflare Tunnel running: `podman logs bot-medsos-tunnel`
-3. ✅ Check webhook status:
-   ```bash
-   curl https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo
-   ```
-4. ✅ Pastikan `TELEGRAM_WEBHOOK_SECRET` sama dengan yang di set webhook
-
-### Dangling Docker Images
-
-**Problem**: Banyak images dengan tag `<none>`
-
-**Solution**:
-
-```bash
-# Cleanup stopped containers
-podman container prune -f
-
-# Remove dangling images
-podman image prune -f
-
-# Nuclear option (remove all unused)
-podman system prune -a -f
-```
-
-### PM2 process crash loop
-
-**Problem**: App terus restart
-
-**Check logs**:
-
-```bash
-pm2 logs bot-medsos --lines 100
-```
-
-Common causes:
-- Database connection failed (check `DATABASE_URL`)
-- Missing ENV variables
-- Port 3000 already in use
-
----
-
-## Scripts
-
-### Database Scripts
+### 4. Database Setup
 
 ```bash
 # Generate Prisma Client
 npm run db:generate
 
-# Run migrations (development)
-npm run db:migrate
-
-# Push schema tanpa migration (use with caution)
+# Push Schema to DB
 npm run db:push
-
-# Open Prisma Studio (DB GUI)
-npm run db:studio
 ```
 
-### Utility Scripts
+---
 
-Located in `scripts/` directory:
+## 🐳 Deployment (Docker)
 
-| Script | Purpose |
-|--------|---------|
-| `sync-brands.js` | Sync game catalog dari VIPReseller |
-| `verify-sync.js` | Verify data sync status |
-| `test-validation.js` | Test player ID validation |
-| `setup-tunnel-service.sh` | Setup Cloudflare Tunnel sebagai systemd service |
-| `setup-vps.sh` | Initial VPS setup script |
+We support **multi-environment** deployment using Docker Compose.
 
-Run scripts:
+### Development Mode
+*Uses standard Nginx and local `.env.development`*
 
 ```bash
-node scripts/sync-brands.js
+# Start all services
+podman-compose -f infrastructure/docker/docker-compose.yml up -d
+```
+
+### Production Mode
+*Uses BunkerWeb WAF and `.env.production`*
+
+```bash
+# Start with production overrides
+podman-compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.production.yml up -d
+```
+
+### Services Status
+```bash
+podman-compose ps
 ```
 
 ---
 
-## Project Structure Detail
+## 📝 Configuration
 
-```
-.
-├── adapters/
-│   ├── bot-telegram/telegram/     # Telegram Bot API wrapper
-│   ├── shared/
-│   │   ├── database/              # Prisma adapter
-│   │   ├── game-providers/        # VIPReseller integration
-│   │   └── payment/               # Sakurupiah payment + callback handler
-│   └── infrastructure/            # Config loaders
-├── core/
-│   ├── applications/bot-telegram/ # Bot use cases & handlers
-│   │   ├── security/              # Authentication & authorization
-│   │   ├── handlers/              # Message & callback handlers
-│   │   └── BotCore.js             # Main bot orchestrator
-│   └── shared/
-│       ├── entities/              # Domain models (User, Transaction, etc)
-│       ├── repositories/          # Repository interfaces
-│       └── services/              # Domain services
-├── server/
-│   └── app.js                     # Express server + DI container
-├── prisma/
-│   └── schema.prisma              # Database schema
-├── scripts/                       # Utility scripts
-├── docker-compose.yml             # Multi-container setup
-├── Dockerfile                     # Application container
-├── docker-entrypoint.sh           # Container startup script
-└── package.json                   # Dependencies
-```
+The application automatically loads the correct environment file based on `NODE_ENV`:
+
+| Environment | File | Usage |
+|-------------|------|-------|
+| **Development** | `.env.development` | Local testing, verbose logs |
+| **Staging** | `.env.staging` | Testing server, sandbox APIs |
+| **Production** | `.env.production` | Live traffic, optimized logs |
+
+**Required Variables:**
+- `DATABASE_URL`: Postgres connection string
+- `TELEGRAM_TOKEN`: Bot API Token
+- `VIPRESELLER_API_KEY`: Game Provider Key
+- `SAKURUPIAH_API_KEY`: Payment Gateway Key
 
 ---
 
-## License
+## 🤝 Contributing
 
-Proprietary - Internal use only
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'feat: Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ---
 
-## Support
+## 📄 License
 
-Untuk issues atau pertanyaan:
-- Check [Troubleshooting](#troubleshooting) section
-- Review logs: `podman logs bot-medsos-app`
-- Contact: Admin Telegram ID dalam `ADMIN_CHAT_ID`
+Proprietary Software. Internal Use Only.
