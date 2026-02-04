@@ -1,0 +1,630 @@
+{
+  "result": true,
+  "data": [
+    {
+      "code": "MLA3-S13",
+      "game": "Mobile Legends A",
+      "name": "3 Diamonds (3 + 0 Bonus)",
+      "price": {
+        "basic": 1021,
+        "premium": 1016,
+        "special": 1011
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA5-S13",
+      "game": "Mobile Legends A",
+      "name": "5 Diamonds (5 + 0 Bonus)",
+      "price": {
+        "basic": 1452,
+        "premium": 1445,
+        "special": 1438
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA10-S13",
+      "game": "Mobile Legends A",
+      "name": "10 Diamonds (10 + 0 Bonus)",
+      "price": {
+        "basic": 2900,
+        "premium": 2886,
+        "special": 2871
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA12-S13",
+      "game": "Mobile Legends A",
+      "name": "12 Diamonds (11 + 1 Bonus)",
+      "price": {
+        "basic": 3347,
+        "premium": 3330,
+        "special": 3314
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA15-S13",
+      "game": "Mobile Legends A",
+      "name": "15 Diamonds (15 + 0 Bonus)",
+      "price": {
+        "basic": 4428,
+        "premium": 4406,
+        "special": 4385
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA17-S13",
+      "game": "Mobile Legends A",
+      "name": "17 Diamonds (16 + 1 Bonus)",
+      "price": {
+        "basic": 4913,
+        "premium": 4889,
+        "special": 4865
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA19-S13",
+      "game": "Mobile Legends A",
+      "name": "19 Diamonds (17 + 2 Bonus)",
+      "price": {
+        "basic": 5412,
+        "premium": 5386,
+        "special": 5359
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA22-S13",
+      "game": "Mobile Legends A",
+      "name": "22 Diamonds (20 + 2 Bonus)",
+      "price": {
+        "basic": 6373,
+        "premium": 6342,
+        "special": 6311
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA36-S13",
+      "game": "Mobile Legends A",
+      "name": "36 Diamonds (33 + 3 Bonus)",
+      "price": {
+        "basic": 9921,
+        "premium": 9873,
+        "special": 9824
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA44-S13",
+      "game": "Mobile Legends A",
+      "name": "44 Diamonds (40 + 4 Bonus)",
+      "price": {
+        "basic": 11653,
+        "premium": 11596,
+        "special": 11540
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA59-S13",
+      "game": "Mobile Legends A",
+      "name": "59 Diamonds (53 + 6 Bonus)",
+      "price": {
+        "basic": 16271,
+        "premium": 16191,
+        "special": 16112
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA64-S13",
+      "game": "Mobile Legends A",
+      "name": "64 Diamonds (58 + 6 Bonus)",
+      "price": {
+        "basic": 16878,
+        "premium": 16795,
+        "special": 16713
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA71-S13",
+      "game": "Mobile Legends A",
+      "name": "71 Diamonds (64 + 7 Bonus)",
+      "price": {
+        "basic": 19151,
+        "premium": 19058,
+        "special": 18964
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA85-S13",
+      "game": "Mobile Legends A",
+      "name": "85 Diamonds (77 + 8 Bonus)",
+      "price": {
+        "basic": 22604,
+        "premium": 22494,
+        "special": 22384
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLAWDP1X-S13",
+      "game": "Mobile Legends A",
+      "name": "1x Weekly Diamond Pass (Event Topup 100)",
+      "price": {
+        "basic": 28280,
+        "premium": 28142,
+        "special": 28004
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA113-S13",
+      "game": "Mobile Legends A",
+      "name": "113 Diamonds (102 + 11 Bonus)",
+      "price": {
+        "basic": 29985,
+        "premium": 29839,
+        "special": 29693
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA128-S13",
+      "game": "Mobile Legends A",
+      "name": "128 Diamonds (117 + 12 Bonus)",
+      "price": {
+        "basic": 33726,
+        "premium": 33561,
+        "special": 33397
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA148-S13",
+      "game": "Mobile Legends A",
+      "name": "148 Diamonds (134 + 14 Bonus)",
+      "price": {
+        "basic": 38435,
+        "premium": 38248,
+        "special": 38060
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA170-S13",
+      "game": "Mobile Legends A",
+      "name": "170 Diamonds (154 + 16 Bonus)",
+      "price": {
+        "basic": 44361,
+        "premium": 44145,
+        "special": 43928
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA176-S13",
+      "game": "Mobile Legends A",
+      "name": "176 Diamonds (160 + 17 Bonus)",
+      "price": {
+        "basic": 46025,
+        "premium": 45800,
+        "special": 45576
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA184-S13",
+      "game": "Mobile Legends A",
+      "name": "184 Diamonds (166 + 18 Bonus)",
+      "price": {
+        "basic": 48136,
+        "premium": 47901,
+        "special": 47666
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA210-S13",
+      "game": "Mobile Legends A",
+      "name": "210 Diamonds (190 + 20 Bonus)",
+      "price": {
+        "basic": 54866,
+        "premium": 54599,
+        "special": 54331
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA220-S13",
+      "game": "Mobile Legends A",
+      "name": "220 Diamonds (200 + 20 Bonus)",
+      "price": {
+        "basic": 57641,
+        "premium": 57360,
+        "special": 57079
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA222-S13",
+      "game": "Mobile Legends A",
+      "name": "222 Diamonds (201 + 21 Bonus)",
+      "price": {
+        "basic": 57641,
+        "premium": 57360,
+        "special": 57079
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA240-S13",
+      "game": "Mobile Legends A",
+      "name": "240 Diamonds (217 + 23 Bonus)",
+      "price": {
+        "basic": 59968,
+        "premium": 59675,
+        "special": 59383
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA277-S13",
+      "game": "Mobile Legends A",
+      "name": "277 Diamonds (251 + 26 Bonus)",
+      "price": {
+        "basic": 73929,
+        "premium": 73569,
+        "special": 73208
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA284-S13",
+      "game": "Mobile Legends A",
+      "name": "284 Diamonds (257 + 27 Bonus)",
+      "price": {
+        "basic": 76445,
+        "premium": 76072,
+        "special": 75699
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA296-S13",
+      "game": "Mobile Legends A",
+      "name": "296 Diamonds (256 + 40 Bonus)",
+      "price": {
+        "basic": 77462,
+        "premium": 77084,
+        "special": 76707
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA300-S13",
+      "game": "Mobile Legends A",
+      "name": "300 Diamonds (261 + 40 Bonus)",
+      "price": {
+        "basic": 78464,
+        "premium": 78081,
+        "special": 77698
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA332-S13",
+      "game": "Mobile Legends A",
+      "name": "332 Diamonds (289 + 43 Bonus)",
+      "price": {
+        "basic": 86547,
+        "premium": 86125,
+        "special": 85703
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA340-S13",
+      "game": "Mobile Legends A",
+      "name": "340 Diamonds (296 + 44 Bonus)",
+      "price": {
+        "basic": 88697,
+        "premium": 88265,
+        "special": 87832
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA355-S13",
+      "game": "Mobile Legends A",
+      "name": "355 Diamonds (309 + 46 Bonus)",
+      "price": {
+        "basic": 92552,
+        "premium": 92101,
+        "special": 91649
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA370-S13",
+      "game": "Mobile Legends A",
+      "name": "370 Diamonds (324 + 46 Bonus)",
+      "price": {
+        "basic": 98195,
+        "premium": 97716,
+        "special": 97237
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA384-S13",
+      "game": "Mobile Legends A",
+      "name": "384 Diamonds (336 + 48 Bonus)",
+      "price": {
+        "basic": 99935,
+        "premium": 99448,
+        "special": 98960
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA453-S13",
+      "game": "Mobile Legends A",
+      "name": "453 Diamonds (408 + 45 Bonus)",
+      "price": {
+        "basic": 118154,
+        "premium": 117577,
+        "special": 117001
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA568-S13",
+      "game": "Mobile Legends A",
+      "name": "568 Diamonds (503 + 65 Bonus)",
+      "price": {
+        "basic": 145376,
+        "premium": 144667,
+        "special": 143957
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA642-S13",
+      "game": "Mobile Legends A",
+      "name": "642 Diamonds (571 + 71 Bonus)",
+      "price": {
+        "basic": 163804,
+        "premium": 163005,
+        "special": 162206
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA716-S13",
+      "game": "Mobile Legends A",
+      "name": "716 Diamonds (637 + 79 Bonus)",
+      "price": {
+        "basic": 182983,
+        "premium": 182090,
+        "special": 181198
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA792-S13",
+      "game": "Mobile Legends A",
+      "name": "792 Diamonds (707 + 85 Bonus)",
+      "price": {
+        "basic": 203508,
+        "premium": 202515,
+        "special": 201522
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA875-S13",
+      "game": "Mobile Legends A",
+      "name": "875 Diamonds (774 + 101 Bonus)",
+      "price": {
+        "basic": 224529,
+        "premium": 223434,
+        "special": 222339
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA963-S13",
+      "game": "Mobile Legends A",
+      "name": "963 Diamonds (851 + 109 Bonus)",
+      "price": {
+        "basic": 240205,
+        "premium": 239033,
+        "special": 237861
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA1000-S13",
+      "game": "Mobile Legends A",
+      "name": "1000 Diamonds (887 + 113 Bonus)",
+      "price": {
+        "basic": 249641,
+        "premium": 248423,
+        "special": 247205
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA1136-S13",
+      "game": "Mobile Legends A",
+      "name": "1135 Diamonds (1006 + 130 Bonus)",
+      "price": {
+        "basic": 284931,
+        "premium": 283541,
+        "special": 282151
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA1159-S13",
+      "game": "Mobile Legends A",
+      "name": "1159 Diamonds (1031 + 128 Bonus)",
+      "price": {
+        "basic": 291248,
+        "premium": 289827,
+        "special": 288406
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA1220-S13",
+      "game": "Mobile Legends A",
+      "name": "1220 Diamonds (1083 + 138 Bonus)",
+      "price": {
+        "basic": 306434,
+        "premium": 304939,
+        "special": 303444
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA1506-S13",
+      "game": "Mobile Legends A",
+      "name": "1506 Diamonds (1335 + 172 Bonus)",
+      "price": {
+        "basic": 380567,
+        "premium": 378711,
+        "special": 376854
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA1704-S13",
+      "game": "Mobile Legends A",
+      "name": "1704 Diamonds (1509 + 195 Bonus)",
+      "price": {
+        "basic": 429505,
+        "premium": 427410,
+        "special": 425314
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    },
+    {
+      "code": "MLA2010-S13",
+      "game": "Mobile Legends A",
+      "name": "2010 Diamonds (1708 + 302 Bonus)",
+      "price": {
+        "basic": 479549,
+        "premium": 477210,
+        "special": 474871
+      },
+      "description": "<ul><li>Instant Process</li><li>Masukan User ID dan Server (jika dibutuhkan). </li><li>Jika Pending Lebih 5 Menit Push ke Whatsapp Admin.</li></ul>",
+      "server": "S13",
+      "status": "available"
+    }
+  ],
+  "message": "Daftar layanan berhasil didapatkan."
+}

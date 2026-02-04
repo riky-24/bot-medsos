@@ -1,0 +1,30 @@
+node_modules/
+# Keep all environment variables out of version control
+.env
+.env.*
+!.env.example
+
+# Helper/Generated files
+/generated/prisma/
+npm-debug.log*
+
+# Infrastructure binaries (downloaded at runtime)
+infrastructure/cloudflare-tunnel/bin/cloudflared*
+infrastructure/nginx/bin/nginx*
+infrastructure/bunkerweb/bin/*
+
+# Legacy/Backup files
+cloudflared
+adapters/infrastructure/bin/
+backups/
+
+# System Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Application logs
+*.log
+logs/
+build.log

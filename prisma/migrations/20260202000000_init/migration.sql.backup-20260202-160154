@@ -1,0 +1,259 @@
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "telegramId" TEXT NOT NULL,
+    "chatId" TEXT NOT NULL,
+    "username" TEXT,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "languageCode" TEXT DEFAULT 'id',
+    "role" TEXT NOT NULL DEFAULT 'user',
+    "isBanned" BOOLEAN NOT NULL DEFAULT false,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "balance" BIGINT NOT NULL DEFAULT 0,
+    "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_sessions" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "chatId" TEXT NOT NULL,
+    "isAuthenticated" BOOLEAN NOT NULL DEFAULT true,
+    "userAgent" TEXT,
+    "ipAddress" TEXT,
+    "lastActivity" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "sessions" (
+    "chatId" TEXT NOT NULL,
+    "userId" TEXT,
+    "isAuthenticated" BOOLEAN NOT NULL DEFAULT false,
+    "game" TEXT,
+    "item" TEXT,
+    "serviceCode" TEXT,
+    "zoneId" TEXT,
+    "gamePlayerId" TEXT,
+    "amount" BIGINT,
+    "price" BIGINT,
+    "channel" TEXT,
+    "lastMsgId" INTEGER,
+    "nickname" TEXT,
+    "lastActivity" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "sessions_pkey" PRIMARY KEY ("chatId")
+);
+
+-- CreateTable
+CREATE TABLE "payment_channels" (
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "minAmount" INTEGER NOT NULL DEFAULT 0,
+    "maxAmount" INTEGER NOT NULL DEFAULT 0,
+    "fee" TEXT,
+    "feeFlat" INTEGER,
+    "feePercent" TEXT,
+    "isPercent" BOOLEAN NOT NULL DEFAULT false,
+    "type" TEXT NOT NULL,
+    "method" TEXT,
+    "logo" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'Aktif',
+    "guideTitle" TEXT,
+    "internalFee" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "payment_channels_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "transactions" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "trxId" TEXT NOT NULL,
+    "reffId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'Pending',
+    "type" TEXT NOT NULL DEFAULT 'topup',
+    "amount" BIGINT NOT NULL,
+    "adminFee" BIGINT NOT NULL DEFAULT 0,
+    "totalAmount" BIGINT NOT NULL,
+    "paymentChannel" TEXT NOT NULL,
+    "paymentMethod" TEXT,
+    "orderDetails" JSONB,
+    "qrisUrl" TEXT,
+    "vaNumber" TEXT,
+    "paymentGuide" TEXT,
+    "expiryTime" TIMESTAMP(3),
+    "paidAt" TIMESTAMP(3),
+    "notes" TEXT,
+    "qrisType" TEXT,
+    "merchantRef" TEXT,
+    "issuerReff" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "transactions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "game_accounts" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "gameCode" TEXT NOT NULL,
+    "playerId" TEXT NOT NULL,
+    "zoneId" TEXT,
+    "nickname" TEXT,
+    "lastUsed" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "game_accounts_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "brands" (
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "thumbnail" TEXT,
+    "publisher" TEXT,
+    "description" TEXT,
+    "displayOrder" INTEGER NOT NULL DEFAULT 999,
+    "status" TEXT NOT NULL DEFAULT 'Aktif',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "brands_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "services" (
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "brandCode" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "description" TEXT,
+    "priceList" JSONB,
+    "basicPrice" BIGINT NOT NULL DEFAULT 0,
+    "sellingPrice" BIGINT NOT NULL DEFAULT 0,
+    "markup" INTEGER NOT NULL DEFAULT 0,
+    "profit" BIGINT NOT NULL DEFAULT 0,
+    "status" TEXT NOT NULL DEFAULT 'available',
+    "providerStatus" TEXT NOT NULL DEFAULT 'available',
+    "checkNicknameUrl" TEXT,
+    "checkNicknamePattern" TEXT,
+    "serverIdRequired" BOOLEAN NOT NULL DEFAULT false,
+    "displayOrder" INTEGER NOT NULL DEFAULT 999,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "services_pkey" PRIMARY KEY ("code")
+);
+
+-- CreateTable
+CREATE TABLE "orders" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "trxId" TEXT NOT NULL,
+    "reffId" TEXT,
+    "brandCode" TEXT NOT NULL,
+    "serviceCode" TEXT NOT NULL,
+    "serviceName" TEXT NOT NULL,
+    "customerNo" TEXT NOT NULL,
+    "zoneId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'Pending',
+    "message" TEXT,
+    "sn" TEXT,
+    "price" BIGINT NOT NULL,
+    "profit" BIGINT NOT NULL DEFAULT 0,
+    "providerOrderId" TEXT,
+    "providerStatus" TEXT,
+    "providerMessage" TEXT,
+    "processedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_telegramId_key" ON "users"("telegramId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_chatId_key" ON "users"("chatId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_sessions_chatId_key" ON "user_sessions"("chatId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "transactions_trxId_key" ON "transactions"("trxId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "transactions_reffId_key" ON "transactions"("reffId");
+
+-- CreateIndex
+CREATE INDEX "transactions_userId_idx" ON "transactions"("userId");
+
+-- CreateIndex
+CREATE INDEX "transactions_status_idx" ON "transactions"("status");
+
+-- CreateIndex
+CREATE INDEX "game_accounts_userId_idx" ON "game_accounts"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "game_accounts_userId_gameCode_playerId_key" ON "game_accounts"("userId", "gameCode", "playerId");
+
+-- CreateIndex
+CREATE INDEX "brands_category_idx" ON "brands"("category");
+
+-- CreateIndex
+CREATE INDEX "brands_status_idx" ON "brands"("status");
+
+-- CreateIndex
+CREATE INDEX "services_brandCode_idx" ON "services"("brandCode");
+
+-- CreateIndex
+CREATE INDEX "services_category_idx" ON "services"("category");
+
+-- CreateIndex
+CREATE INDEX "services_status_idx" ON "services"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "orders_trxId_key" ON "orders"("trxId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "orders_reffId_key" ON "orders"("reffId");
+
+-- CreateIndex
+CREATE INDEX "orders_userId_idx" ON "orders"("userId");
+
+-- CreateIndex
+CREATE INDEX "orders_status_idx" ON "orders"("status");
+
+-- AddForeignKey
+ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "game_accounts" ADD CONSTRAINT "game_accounts_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "services" ADD CONSTRAINT "services_brandCode_fkey" FOREIGN KEY ("brandCode") REFERENCES "brands"("code") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

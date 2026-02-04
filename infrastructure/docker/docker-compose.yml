@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # Application Service
+  app:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/Dockerfile
+    image: bot-medsos-app:latest
+    container_name: bot-medsos-app
+    restart: unless-stopped
+    # INTERNAL ONLY - no host port exposure
+    expose:
+      - "3000"
+    environment:
+      - DATABASE_URL=postgresql://botuser:roman@db:5432/botmedsos?connection_limit=20
+      - NODE_ENV=production
+      - VIPRESELLER_API_KEY=${VIPRESELLER_API_KEY}
+      - VIPRESELLER_API_ID=${VIPRESELLER_API_ID}
+      - SAKURUPIAH_API_ID=${SAKURUPIAH_API_ID}
+      - SAKURUPIAH_API_KEY=${SAKURUPIAH_API_KEY}
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}
+      - ADMIN_CHAT_ID=${ADMIN_CHAT_ID}
+      - APP_BASE_URL=${APP_BASE_URL}
+      - WEBHOOK_URL=${APP_BASE_URL}
+      - ENABLE_AUTO_TUNNEL=false # Disable code-managed tunnel (Docker uses tunnel service)
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health/nginx"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Database Service
+  db:
+    image: docker.io/postgres:16-alpine
+    container_name: bot-medsos-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=botuser
+      - POSTGRES_PASSWORD=roman
+      - POSTGRES_DB=botmedsos
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bot-network
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U botuser -d botmedsos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # Nginx Reverse Proxy (Development Mode - Alpine)
+  nginx:
+    image: docker.io/nginx:alpine
+    container_name: bot-medsos-nginx
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"  # Only localhost for security
+    environment:
+      - UPSTREAM_HOST=app
+      - UPSTREAM_PORT=3000
+      - SERVER_NAME=${SERVER_NAME:-bot.opinionry.my.id}
+    volumes:
+      - ../nginx/config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/config/bot-medsos.conf:/etc/nginx/templates/bot-medsos.conf.template:ro
+      - ../../logs/nginx:/var/log/nginx:rw
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - bot-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/nginx/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # Cloudflare Tunnel (Inbound Gateway)
+  tunnel:
+    image: docker.io/cloudflare/cloudflared:latest
+    container_name: bot-medsos-tunnel
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - bot-network
+    depends_on:
+      nginx:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+volumes:
+  postgres_data:
+    name: bot-medsos-postgres-data
+
+networks:
+  bot-network:
+    name: bot-medsos-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

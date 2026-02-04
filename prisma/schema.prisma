@@ -1,0 +1,202 @@
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// User & Auth
+// ==========================================
+
+model User {
+  id             String    @id @default(uuid())
+  telegramId     String    @unique
+  chatId         String    @unique
+  username       String?
+  firstName      String?
+  lastName       String?
+  languageCode   String?   @default("id")
+  role           String    @default("user") // admin, user
+  isBanned       Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  balance        BigInt    @default(0)
+  lastActiveAt   DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+  sessions       UserSession[] // Relation to UserSession
+  transactions   Transaction[]
+  gameAccounts   GameAccount[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id              String   @id @default(uuid())
+  userId          String
+  chatId          String   @unique
+  isAuthenticated Boolean  @default(true)
+  userAgent       String?
+  ipAddress       String?
+  lastActivity    DateTime @default(now())
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+// Note: "Session" table is used for Shopping Cart / Temporary State (SessionService)
+model Session {
+  chatId          String   @id
+  userId          String?
+  isAuthenticated Boolean  @default(false)
+  
+  // Cart Fields
+  game            String?
+  item            String?
+  serviceCode     String?  // Code from provider
+  zoneId          String?
+  gamePlayerId    String?  // Player ID input
+  amount          BigInt?
+  price           BigInt?
+  channel         String?
+  lastMsgId       Int?
+  nickname        String?
+  
+  // Timestamps
+  lastActivity    DateTime @default(now())
+  expiresAt       DateTime
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+// ==========================================
+// Payment & Transactions
+// ==========================================
+
+model PaymentChannel {
+  code        String   @id
+  name        String
+  minAmount   Int      @default(0)
+  maxAmount   Int      @default(0)
+  fee         String?
+  feeFlat     Int?
+  feePercent  String?
+  isPercent   Boolean  @default(false)
+  type        String   // VA, EWALLET, RETAIL, QRIS
+  method      String?  // OVO, DANA, etc
+  logo        String?
+  status      String   @default("Aktif")
+  guideTitle  String?
+  guideSteps  String?  @db.Text
+  lastSynced  DateTime @default(now())
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("payment_channels")
+}
+
+model Transaction {
+  merchantRef   String    @id
+  trxId         String?   @unique // Gateway Transaction ID
+  userId        String
+  customerName  String?
+  
+  // Order Details
+  game          String?
+  item          String?
+  nickname      String?
+  playerId      String?
+  zoneId        String?
+  gameCode      String?   // Internal game code
+  serviceCode   String?   // Provider service code
+  amount        BigInt
+  channel       String?
+  
+  // Status & Payment Info
+  status        String    @default("UNPAID") 
+  paymentUrl    String?   @db.Text
+  paymentNo     String?
+  qrString      String?   @db.Text
+  messageId     Int?      // Telegram Bubble ID
+  
+  paidAt        DateTime?
+  expiryDate    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+}
+
+// ==========================================
+// Game & Products
+// ==========================================
+
+// GameRepository maps this to "Brand"
+model Brand {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  name           String
+  provider       String   @default("vipreseller")
+  categories     String[] // Array of strings (Postgres)
+  validationCode String?
+  
+  services       GameService[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("games") // Mapped to 'games' table as per Repo
+}
+
+model GameService {
+  code         String  @id
+  brandId      String
+  serviceName  String
+  category     String?
+  
+  priceBasic   BigInt @default(0)
+  pricePremium BigInt @default(0)
+  priceSpecial BigInt @default(0)
+  
+  description  String? @db.Text
+  server       String?
+  
+  lastSynced   DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  brand        Brand    @relation(fields: [brandId], references: [id])
+
+  @@map("game_services")
+}
+
+model GameAccount {
+  id            String   @id @default(uuid())
+  userId        String
+  gameCode      String
+  playerId      String
+  zoneId        String?
+  nickname      String?
+  isVerified    Boolean  @default(false)
+  lastValidated DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, gameCode, playerId], name: "userId_gameCode_playerId")
+  @@map("game_accounts")
+}

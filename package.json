@@ -1,0 +1,32 @@
+{
+  "name": "bot-medsos",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start:telegram": "node server/app.js",
+    "start:dev": "NODE_ENV=development node server/app.js",
+    "start:staging": "NODE_ENV=staging node server/app.js",
+    "start:prod": "NODE_ENV=production node server/app.js",
+    "start:prod-pm2": "pm2 start ecosystem.config.cjs --env production",
+    "pm2:logs": "pm2 logs bot-medsos",
+    "pm2": "pm2",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "test:db": "node test-prisma.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^5.22.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "pm2": "^6.0.14",
+    "prisma": "^5.22.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  }
+}
