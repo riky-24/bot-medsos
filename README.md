@@ -6,7 +6,7 @@
 ![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-orange?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)
 
-> **Enterprise-grade Telegram Bot** for automated game top-ups, built with Hexagonal Architecture and Docker orchestration.
+> **Enterprise-grade Telegram Bot** for automated game top-up, built with Hexagonal Architecture and Docker orchestration.
 
 ---
 
@@ -58,14 +58,17 @@ bot-medsos/
 │   ├── entities/            # Data models
 │   └── applications/        # Use cases
 ├── adapters/                # 🔌 Infrastructure Layer (External Comms)
-│   ├── platform/            # Cloudflare, System adapters
-│   ├── shared/              # Database, API clients
-│   └── bot-telegram/        # Telegram interface
-├── infrastructure/          # 🏗️ DevOps & Configuration
-│   ├── docker/              # Docker setup
-│   ├── nginx/               # Nginx setup
-│   └── cloudflare-tunnel/   # Tunnel config
-└── server/                  # 🚀 Application Entry Point
+│   ├── platform/            # ☁️ Cloudflare & System Adapters
+│   ├── shared/              # 💾 Database, Payment, Game APIs
+│   └── bot-telegram/        # 🤖 Telegram Interface
+├── infrastructure/          # 🏗️ DevOps & Configuration (Root Level)
+│   ├── docker/              # Docker setup (Compose, Dockerfile)
+│   ├── nginx/               # Nginx reverse proxy config
+│   ├── bunkerweb/           # BunkerWeb WAF config
+│   └── cloudflare-tunnel/   # Cloudflared binary & scripts
+├── server/                  # 🚀 Application Entry Point
+├── prisma/                  # 🗄️ Database Schema
+└── scripts/                 # 🛠️ Utility Scripts
 ```
 
 ---

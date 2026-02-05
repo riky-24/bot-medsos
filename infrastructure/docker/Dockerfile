@@ -14,6 +14,9 @@ RUN npm ci && npx prisma generate
 # Copy source code
 COPY . .
 
+# Create logs directory with proper permissions
+RUN mkdir -p logs && chown -R node:node logs
+
 # Security: Use non-root user
 USER node
 

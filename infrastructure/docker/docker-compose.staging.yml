@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Nginx with ModSecurity WAF (Bunkerized)
   nginx:
-    image: bunkerity/bunkerweb:1.5.8
+    image: bunkerity/bunkerweb:1.5.12
     container_name: bot-medsos-nginx-waf
     environment:
       # General Configuration
@@ -11,7 +11,7 @@ services:
       - AUTO_LETS_ENCRYPT=no
       - USE_GZIP=yes
       - USE_REALIP=yes
-      - REALIP_FROM=172.20.0.0/16
+      - REALIP_FROM=10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
 
       # Proxy Configuration (Route checks to app)
       - SERVE_PATH_0=/

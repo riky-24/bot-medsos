@@ -198,6 +198,9 @@ async function bootstrap() {
         // Full Health Report
         app.get('/health', async (req, res) => res.json(await healthService.runAll()));
 
+        // Nginx/Docker Healthcheck specific endpoint
+        app.get('/health/nginx', (req, res) => res.send('app ok'));
+
         // Telegram Webhook
         app.post('/webhook/telegram', (req, res) => {
             // Validate secret token from Telegram
