@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "start:telegram": "node server/app.js",
     "start:dev": "NODE_ENV=development node server/app.js",
     "start:staging": "NODE_ENV=staging node server/app.js",
     "start:prod": "NODE_ENV=production node server/app.js",
