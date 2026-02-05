@@ -13,7 +13,8 @@ services:
     expose:
       - "3000"
     environment:
-      - DATABASE_URL=postgresql://botuser:roman@db:5432/botmedsos?connection_limit=20
+      # Secure: Use environment variables for sensitive data
+      - DATABASE_URL=${DATABASE_URL:-postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?connection_limit=20}
       - NODE_ENV=${NODE_ENV:-development}
       - VIPRESELLER_API_KEY=${VIPRESELLER_API_KEY}
       - VIPRESELLER_API_ID=${VIPRESELLER_API_ID}
@@ -31,6 +32,7 @@ services:
     networks:
       - bot-network
     healthcheck:
+      # Alpine uses wget by default
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health/nginx"]
       interval: 30s
       timeout: 10s
@@ -57,9 +59,9 @@ services:
     container_name: bot-medsos-db
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=botuser
-      - POSTGRES_PASSWORD=roman
-      - POSTGRES_DB=botmedsos
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -68,7 +70,7 @@ services:
     expose:
       - "5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U botuser -d botmedsos"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
