@@ -203,10 +203,19 @@ async function bootstrap() {
 
         // Telegram Webhook
         app.post('/webhook/telegram', (req, res) => {
+            // Log incoming request
+            logger.info('📩 Webhook POST received', {
+                ip: req.ip,
+                contentLength: req.headers['content-length']
+            });
+
             // Validate secret token from Telegram
             const secretToken = req.headers['x-telegram-bot-api-secret-token'];
             if (secretToken !== botConfig.webhookSecret) {
-                logger.warn('⛔ Webhook unauthorized: Invalid Secret Token');
+                logger.warn('⛔ Webhook unauthorized: Invalid Secret Token', {
+                    received: secretToken,
+                    expected: botConfig.webhookSecret
+                });
                 return res.sendStatus(403);
             }
 
