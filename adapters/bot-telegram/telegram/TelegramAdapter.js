@@ -1,10 +1,16 @@
 import https from "https";
 import { Message } from "../../../core/shared/entities/Message.js";
+import { TelegramPort } from "../../../core/shared/ports/TelegramPort.js";
 import logger from "../../../core/shared/services/Logger.js";
 
 
-export class TelegramAdapter {
+/**
+ * TelegramAdapter
+ * Implements TelegramPort for Hexagonal Architecture
+ */
+export class TelegramAdapter extends TelegramPort {
   constructor(token) {
+    super();
     this.token = token;
     this.apiUrl = `https://api.telegram.org/bot${token}`;
   }

@@ -5,11 +5,23 @@ import { PaymentPort } from '../../../core/shared/ports/PaymentPort.js';
 import logger from '../../../core/shared/services/Logger.js';
 
 export class SakurupiahAdapter extends PaymentPort {
-  constructor(apiKey) {
+  /**
+   * @param {String} apiKey - Sakurupiah API Key
+   * @param {Object} config - Optional configuration
+   * @param {String} config.apiId - API ID (defaults to env)
+   * @param {String} config.baseUrl - API base URL (defaults to sandbox)
+   * @param {String} config.callbackUrl - Payment callback URL
+   * @param {String} config.returnUrl - Payment return/invoice URL
+   */
+  constructor(apiKey, config = {}) {
     super(); // Call parent constructor
     this.apiKey = apiKey;
-    this.apiId = process.env.SAKURUPIAH_API_ID;
-    this.baseUrl = "https://sakurupiah.id/api-sanbox";
+    this.apiId = config.apiId || process.env.SAKURUPIAH_API_ID;
+
+    // Configurable URLs - no more hardcoded values
+    this.baseUrl = config.baseUrl || process.env.SAKURUPIAH_BASE_URL || "https://sakurupiah.id/api-sanbox";
+    this.callbackUrl = config.callbackUrl || process.env.PAYMENT_CALLBACK_URL || null;
+    this.returnUrl = config.returnUrl || process.env.PAYMENT_RETURN_URL || null;
   }
 
   generateSignature(merchantRef, amount, method = "QRIS") {
@@ -55,8 +67,13 @@ export class SakurupiahAdapter extends PaymentPort {
     const gameUserId = orderData.playerId || orderData.customerName || orderData.userId;
     formData.append('note[]', `User ID: ${gameUserId} ${orderData.zoneId ? '(' + orderData.zoneId + ')' : ''}`);
 
-    formData.append('callback_url', 'https://b7store.com/callback');
-    formData.append('return_url', 'https://b7store.com/invoice');
+    // Use configurable URLs (from constructor config or environment)
+    if (this.callbackUrl) {
+      formData.append('callback_url', this.callbackUrl);
+    }
+    if (this.returnUrl) {
+      formData.append('return_url', this.returnUrl);
+    }
 
     try {
       logger.info(`[Sakurupiah] Sending request to ${this.baseUrl}/create.php (multipart/form-data)`);

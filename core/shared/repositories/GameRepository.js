@@ -1,10 +1,14 @@
+import { GameRepositoryPort } from '../ports/GameRepositoryPort.js';
+
 /**
  * GameRepository
  * Handles all game-related database operations
  * Manages brands and game services from VIPReseller
+ * Implements GameRepositoryPort for Hexagonal Architecture
  */
-export class GameRepository {
+export class GameRepository extends GameRepositoryPort {
   constructor(prismaAdapter) {
+    super();
     this.prisma = prismaAdapter.client;
   }
 

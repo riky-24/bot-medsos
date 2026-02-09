@@ -1,13 +1,16 @@
 import { User } from '../entities/User.js';
 import { UserSession } from '../value-objects/UserSession.js';
+import { UserRepositoryPort } from '../ports/UserRepositoryPort.js';
 import logger from '../services/Logger.js';
 
 /**
  * UserRepository
  * Data access layer for User and UserSession entities
+ * Implements UserRepositoryPort for Hexagonal Architecture
  */
-export class UserRepository {
+export class UserRepository extends UserRepositoryPort {
     constructor(databasePort) {
+        super();
         this.db = databasePort;
     }
 

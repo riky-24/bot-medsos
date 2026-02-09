@@ -2,10 +2,17 @@ import crypto from 'crypto';
 import logger, { securityLogger } from '../../../core/shared/services/Logger.js';
 
 export class VIPResellerCallbackHandler {
-    constructor(apiId, apiKey, botCore) {
+    /**
+     * @param {String} apiId - VIPReseller API ID
+     * @param {String} apiKey - VIPReseller API Key
+     * @param {Object} botCore - BotCore instance for sending messages
+     * @param {TransactionRepositoryPort} transactionRepository - Transaction repository (Hexagonal)
+     */
+    constructor(apiId, apiKey, botCore, transactionRepository = null) {
         this.apiId = apiId;
         this.apiKey = apiKey;
         this.bot = botCore;
+        this.transactionRepository = transactionRepository;
     }
 
     /**
@@ -41,47 +48,43 @@ export class VIPResellerCallbackHandler {
 
             const { trxid, status, sn } = data;
 
-            // 3. Update Transaction in Core
-            if (this.bot && this.bot.dependencies.databasePort) {
-                const db = this.bot.dependencies.databasePort;
+            // 3. Update Transaction via Repository (Hexagonal Architecture)
+            if (!this.transactionRepository) {
+                logger.warn(`[VIPReseller-Callback] TransactionRepository not injected`);
+                return res.json({ success: true, message: 'Repository not available' });
+            }
 
-                // Find transaction by provider's trxid
-                const trx = await db.client.transaction.findFirst({
-                    where: { trxId: trxid }
-                });
+            // Find transaction by provider's trxid using Repository Port
+            const trx = await this.transactionRepository.findByTrxId(trxid);
 
-                if (!trx) {
-                    logger.warn(`[VIPReseller-Callback] Transaction not found for ID: ${trxid}`);
-                    return res.json({ success: true, message: 'Trx not found locally' });
+            if (!trx) {
+                logger.warn(`[VIPReseller-Callback] Transaction not found for ID: ${trxid}`);
+                return res.json({ success: true, message: 'Trx not found locally' });
+            }
+
+            // Map status and update via Repository
+            let newStatus = 'PROCESSING';
+            if (status === 'success') newStatus = 'SUCCESS';
+            if (status === 'error' || status === 'failed') newStatus = 'FAILED';
+
+            if (newStatus === 'SUCCESS') {
+                await this.transactionRepository.updateStatus(trx.merchantRef, 'PAID', trxid);
+            }
+
+            // 4. Notify User via Bot
+            if (this.bot.sendPort && trx.userId) {
+                let message = "";
+                if (status === 'success') {
+                    message = `✅ **Topup Berhasil!**\n\nProduk: ${trx.item}\nSN: \`${sn || '-'}\`\n\nTerima kasih sudah order! 🚀`;
+                } else if (status === 'error' || status === 'failed') {
+                    message = `❌ **Topup Gagal**\n\nMaaf Kak, pesanan ${trx.item} gagal diproses oleh provider. Silakan hubungi admin untuk refund/cek manual.`;
                 }
 
-                // Map status
-                let newStatus = 'PROCESSING';
-                if (status === 'success') newStatus = 'SUCCESS';
-                if (status === 'error' || status === 'failed') newStatus = 'FAILED';
-
-                await db.client.transaction.update({
-                    where: { id: trx.id },
-                    data: {
-                        status: newStatus === 'SUCCESS' ? 'PAID' : trx.status
-                    }
-                });
-
-                // 4. Notify User via Bot
-                if (this.bot.sendPort && trx.userId) {
-                    let message = "";
-                    if (status === 'success') {
-                        message = `✅ **Topup Berhasil!**\n\nProduk: ${trx.item}\nSN: \`${sn || '-'}\`\n\nTerima kasih sudah order! 🚀`;
-                    } else if (status === 'error' || status === 'failed') {
-                        message = `❌ **Topup Gagal**\n\nMaaf Kak, pesanan ${trx.item} gagal diproses oleh provider. Silakan hubungi admin untuk refund/cek manual.`;
-                    }
-
-                    if (message) {
-                        try {
-                            await this.bot.sendPort.sendMessage(trx.userId, message, { parse_mode: 'Markdown' });
-                        } catch (e) {
-                            logger.error(`[VIPReseller-Callback] Failed to notify user ${trx.userId}: ${e.message}`);
-                        }
+                if (message) {
+                    try {
+                        await this.bot.sendPort.sendMessage(trx.userId, message, { parse_mode: 'Markdown' });
+                    } catch (e) {
+                        logger.error(`[VIPReseller-Callback] Failed to notify user ${trx.userId}: ${e.message}`);
                     }
                 }
             }
@@ -93,3 +96,4 @@ export class VIPResellerCallbackHandler {
         }
     }
 }
+

@@ -1,11 +1,14 @@
 import { PAYMENT_STATUS } from '../config/constants.js';
+import { TransactionRepositoryPort } from '../ports/TransactionRepositoryPort.js';
 
 /**
  * TransactionRepository
  * Database access for Transaction model
+ * Implements TransactionRepositoryPort for Hexagonal Architecture
  */
-export class TransactionRepository {
+export class TransactionRepository extends TransactionRepositoryPort {
   constructor(databasePort) {
+    super();
     this.db = databasePort;
   }
 
@@ -24,7 +27,7 @@ export class TransactionRepository {
   async updateStatus(merchantRef, status, trxId = null) {
     const data = { status };
     if (trxId) data.trxId = trxId;
-    
+
     return await this.db.client.transaction.update({
       where: { merchantRef },
       data
@@ -50,7 +53,7 @@ export class TransactionRepository {
       paidAt: new Date()
     };
     if (trxId) data.trxId = trxId;
-    
+
     return await this.db.client.transaction.update({
       where: { merchantRef },
       data
@@ -65,7 +68,7 @@ export class TransactionRepository {
       where: { merchantRef }
     });
   }
-  
+
   /**
    * Find transaction by trxId (from payment gateway)
    */

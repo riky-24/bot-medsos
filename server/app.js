@@ -64,16 +64,21 @@ async function bootstrap() {
 
         // 1. Initialize Adapters (Infrastructure Layer)
         const prismaAdapter = new PrismaAdapter();
-        const telegramAdapter = new TelegramAdapter(process.env.TELEGRAM_TOKEN);
+        const telegramAdapter = new TelegramAdapter(AppConfig.telegram.token);
 
+        // Use AppConfig for game provider configuration
         const gameProviderAdapter = new VIPResellerAdapter(
-            process.env.VIPRESELLER_API_KEY,
-            process.env.VIPRESELLER_API_ID
+            AppConfig.gameProvider.vipreseller.apiKey,
+            AppConfig.gameProvider.vipreseller.apiId
         );
 
-        // Uses Sakurupiah as default payment gateway
+        // Use AppConfig for payment gateway configuration
         const paymentAdapter = new SakurupiahAdapter(
-            process.env.SAKURUPIAH_API_KEY
+            AppConfig.payment.sakurupiah.apiKey,
+            {
+                apiId: AppConfig.payment.sakurupiah.apiId,
+                baseUrl: AppConfig.payment.sakurupiah.baseUrl
+            }
         );
 
         // 2. Initialize Repositories (Data Access Layer)

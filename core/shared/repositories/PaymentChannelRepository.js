@@ -1,9 +1,13 @@
+import { PaymentChannelRepositoryPort } from '../ports/PaymentChannelRepositoryPort.js';
+
 /**
  * PaymentChannelRepository
  * Encapsulates database operations for PaymentChannel entity
+ * Implements PaymentChannelRepositoryPort for Hexagonal Architecture
  */
-export class PaymentChannelRepository {
+export class PaymentChannelRepository extends PaymentChannelRepositoryPort {
   constructor(databasePort) {
+    super();
     this.db = databasePort;
   }
 

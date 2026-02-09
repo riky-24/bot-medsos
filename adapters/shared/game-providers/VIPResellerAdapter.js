@@ -7,12 +7,19 @@ import logger from '../../../core/shared/services/Logger.js';
  * Game provider adapter for VIP-Reseller (vip-reseller.co.id)
  */
 export class VIPResellerAdapter extends GameProviderPort {
-  constructor(apiKey, apiId) {
+  /**
+   * @param {String} apiKey - VIPReseller API Key
+   * @param {String} apiId - VIPReseller API ID
+   * @param {Object} config - Optional configuration
+   * @param {String} config.baseUrl - API base URL (defaults to production)
+   * @param {Number} config.timeout - Request timeout in ms
+   */
+  constructor(apiKey, apiId, config = {}) {
     super();
     this.apiKey = apiKey;
     this.apiId = apiId;
-    this.baseUrl = 'https://vip-reseller.co.id/api/game-feature';
-    this.timeout = 30000;
+    this.baseUrl = config.baseUrl || process.env.VIPRESELLER_BASE_URL || 'https://vip-reseller.co.id/api/game-feature';
+    this.timeout = config.timeout || 30000;
   }
 
   generateSign() {

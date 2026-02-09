@@ -1,9 +1,13 @@
+import { SessionRepositoryPort } from '../ports/SessionRepositoryPort.js';
+
 /**
  * SessionRepository
  * Encapsulates database operations for Session entity
+ * Implements SessionRepositoryPort for Hexagonal Architecture
  */
-export class SessionRepository {
+export class SessionRepository extends SessionRepositoryPort {
   constructor(databasePort) {
+    super();
     this.db = databasePort;
   }
 
