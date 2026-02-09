@@ -1,29 +1,71 @@
 /**
- * MenuRouter
- * Handles all menu-related callback routing
- * Responsibility: Navigate between different menus
+ * @file MenuRouter.js
+ * @description Routes menu navigation callbacks and displays menus to users
+ * @responsibility Handle menu navigation, transaction history display, and menu state management
+ * 
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires MenuHandler - Menu keyboard generation
+ * @requires PaymentService - Transaction history retrieval
+ * @requires SessionService - User session for UI tracking
+ * @requires UIPersistenceHelper - Single bubble UI experience
+ * @requires Logger - Logging service
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern Router Pattern - Routes menu actions to appropriate views
+ * 
+ * @example
+ * const menuRouter = new MenuRouter(deps, config);
+ * await menuRouter.route('topup', chatId, messageId);
+ * // Shows top-up category selection menu
+ * 
+ * @menu_actions Supported actions:
+ * - topup: Show top-up category selection
+ * - topup_cat_{CATEGORY}: Show games by category (verified, regular, vouchers)
+ * - history: Show transaction history
+ * - payment: Show payment channels (checkout mode)
+ * - info_payment: Show payment channels (info mode)
+ * - admin: Admin panel (future)
+ * - contact: Contact information
+ * - main/home: Main menu
+ * 
+ * @related
+ * - MenuHandler.js - Menu generation logic
+ * - CallbackRouter.js - Routes menu callbacks here
+ * - PaymentService.js - Transaction data
  */
 import logger from '../../../../shared/services/Logger.js';
+import { BaseHandler } from './BaseHandler.js';
+import { RouterResponse } from './RouterResponse.js';
+import { PARSING } from './HandlerConstants.js';
 
-export class MenuRouter {
+export class MenuRouter extends BaseHandler {
+  /**
+   * Constructor for MenuRouter
+   * 
+   * @param {Object} deps - Dependency injection object
+   * @param {Object} deps.menuHandler - Menu generation handler
+   * @param {Object} deps.paymentService - Payment business logic service
+   * @param {Object} deps.sendPort - Telegram bot messaging interface
+   * @param {Object} config - Configuration object
+   * @extends BaseHandler
+   */
   constructor(deps, config) {
-    this.sendPort = deps.sendPort;
+    super(deps, config); // Initialize base dependencies
+
+    // Additional dependencies specific to MenuRouter
     this.menuHandler = deps.menuHandler;
     this.paymentService = deps.paymentService;
-    this.sessionService = deps.sessionService; // NEW: for UI tracking
-    this.messages = config.messages;
     this.menus = config.menus;
-
-    if (deps.ui) {
-      this.ui = deps.ui;
-    }
   }
 
   /**
-   * Route menu callbacks
-   * @param {String} action - Menu action ('topup', 'payment', 'payment_reopen', 'admin')
-   * @param {String} chatId - Telegram chat ID
-   * @param {Number} messageId - Message ID for editing
+   * Route menu callbacks to appropriate displays
+   * Handles navigation between main menu, top-up categories, history, etc.
+   * 
+   * @param {string} action - Menu action (e.g., 'topup', 'history', 'admin')
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} [messageId=null] - Message ID for editing
+   * @returns {Promise<RouterResponse>} Router response
    */
   async route(action, chatId, messageId = null) {
     // 1. Handle Categorized Topup Navigation
@@ -31,7 +73,7 @@ export class MenuRouter {
       // Format: topup_cat_verified OR topup_cat_verified_page_2
       const parts = action.split('_');
       const category = parts[2]; // verified, regular, vouchers
-      const page = action.includes('page_') ? parseInt(parts.pop(), 10) : 1;
+      const page = action.includes('page_') ? parseInt(parts.pop(), PARSING.DECIMAL_RADIX) : 1;
 
       const menuResult = await this.menuHandler.getGroupedTopUpMenu(category, page);
 
@@ -47,7 +89,7 @@ export class MenuRouter {
       }
 
       await this.ui.sendOrEdit(chatId, title, { reply_markup: menuResult });
-      return { status: 'handled', view: `topup_${category}` };
+      return RouterResponse.handled(`topup_${category}`);
     }
 
     // 1.1 Handle Main Topup Entry (Category Selection)
@@ -56,7 +98,7 @@ export class MenuRouter {
       const title = this.messages.TOPUP_MENU_TITLE || "🎮 **PILIH KATEGORI LAYANAN**";
 
       await this.ui.sendOrEdit(chatId, title, { reply_markup: menuResult });
-      return { status: 'handled', view: 'topup_categories' };
+      return RouterResponse.handled('topup_categories');
     }
 
     // 2. Standard Switch for others
@@ -68,13 +110,13 @@ export class MenuRouter {
       case 'payment':
       case 'payment_reopen':
         // Payment menu (Checkout Mode)
-        return { delegateTo: 'paymentChannel', mode: 'payment', chatId, messageId };
+        return RouterResponse.delegate('paymentChannel', { mode: 'payment', chatId, messageId });
 
       case 'info_payment':
       case 'guide': // Legacy fallback
         // Payment Info (Info Mode)
         logger.info('[MenuRouter] Delegating to paymentChannel in INFO mode');
-        return { delegateTo: 'paymentChannel', mode: 'info', chatId, messageId };
+        return RouterResponse.delegate('paymentChannel', { mode: 'info', chatId, messageId });
 
       case 'admin':
         await this.ui.sendOrEdit(chatId, this.messages.ADMIN_PANEL, {
@@ -86,7 +128,7 @@ export class MenuRouter {
             ]
           }
         });
-        return { status: 'handled', view: 'admin' };
+        return RouterResponse.handled('admin');
 
       case 'contact':
         await this.ui.sendOrEdit(chatId, this.messages.CONTACT_INFO, {
@@ -97,7 +139,7 @@ export class MenuRouter {
             ]
           }
         });
-        return { status: 'handled', view: 'contact' };
+        return RouterResponse.handled('contact');
 
       case 'home':
       case 'main':
@@ -107,7 +149,7 @@ export class MenuRouter {
 
         // Standard Welcome / Main Menu
         await this.ui.sendOrEdit(chatId, this.messages.WELCOME?.() || "Selamat Datang!", { reply_markup: this.menuHandler.getMainMenu() });
-        return { status: 'handled', view: 'main' };
+        return RouterResponse.handled('main');
     }
   }
 
@@ -115,6 +157,11 @@ export class MenuRouter {
 
   /**
    * Handle transaction history request
+   * Fetches and displays user's recent transactions
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} [messageId=null] - Message ID for editing
+   * @returns {Promise<RouterResponse>} Toast notification
    */
   async handleHistory(chatId, messageId = null) {
     try {
@@ -134,7 +181,7 @@ export class MenuRouter {
           ]
         };
         await this.ui.sendOrEdit(chatId, text, { reply_markup: keyboard });
-        return { toast: this.messages.HISTORY_EMPTY_TOAST || "Belum ada transaksi." };
+        return RouterResponse.toast(this.messages.HISTORY_EMPTY_TOAST || "Belum ada transaksi.");
       }
 
       let msg = this.messages.HISTORY_TITLE;
@@ -182,7 +229,7 @@ export class MenuRouter {
       );
 
       await this.ui.sendOrEdit(chatId, msg, { reply_markup: keyboard });
-      return { toast: this.messages.HISTORY_REFRESH_SUCCESS };
+      return RouterResponse.toast(this.messages.HISTORY_REFRESH_SUCCESS);
 
     } catch (error) {
       logger.error('[MenuRouter] History Error:', error);
@@ -193,6 +240,10 @@ export class MenuRouter {
 
   /**
    * Navigate back to main menu
+   * Helper method for quick redirection
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @returns {Promise<void>}
    */
   async toMainMenu(chatId) {
     await this.menuHandler.showMainMenu(chatId);
@@ -200,6 +251,11 @@ export class MenuRouter {
 
   /**
    * Navigate to top-up menu
+   * Helper method for quick redirection
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} [messageId=null] - Message ID for editing
+   * @returns {Promise<void>}
    */
   async toTopUpMenu(chatId, messageId = null) {
     await this.route('topup', chatId, messageId);

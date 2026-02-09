@@ -1,27 +1,59 @@
 /**
- * GuideRouter
- * Handles payment guide display
- * Responsibility: Show payment guides with instructions and photos
+ * @file GuideRouter.js
+ * @description Displays payment channel guides with instructions and fee information
+ * @responsibility Show detailed payment guides for selected channels in checkout or info mode
+ * 
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires PaymentService - Channel data and fee calculation
+ * @requires SessionService - User session for pending order data
+ * @requires UIPersistenceHelper - Single bubble UI experience
+ * @requires Logger - Logging service
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern View Pattern - Renders payment guide views
+ * 
+ * @example
+ * const guideRouter = new GuideRouter(deps, config);
+ * await guideRouter.showGuide('QRIS', chatId, messageId, false);
+ * // Shows QRIS payment guide in checkout mode
+ * 
+ * @modes
+ * - Checkout Mode (isInfoMode=false): Shows guide with "Pay Now" button for active orders
+ * - Info Mode (isInfoMode=true): Shows guide for informational purposes only
+ * 
+ * @related
+ * - CallbackRouter.js - Routes guide/info callbacks here
+ * - PaymentService.js - Provides channel data
  */
 import logger from '../../../../shared/services/Logger.js';
+import { BaseHandler } from './BaseHandler.js';
 
-export class GuideRouter {
+export class GuideRouter extends BaseHandler {
+  /**
+   * Constructor for GuideRouter
+   * 
+   * @param {Object} deps - Dependency injection object
+   * @param {Object} deps.paymentService - Payment business logic service
+   * @param {Object} deps.sendPort - Telegram bot messaging interface
+   * @param {Object} config - Configuration object with messages
+   * @extends BaseHandler
+   */
   constructor(deps, config) {
-    this.sendPort = deps.sendPort;
-    this.paymentService = deps.paymentService;
-    this.sessionService = deps.sessionService;
-    this.messages = config.messages;
+    super(deps, config); // Initialize base dependencies
 
-    if (deps.ui) {
-      this.ui = deps.ui;
-    }
+    // Additional dependencies specific to GuideRouter
+    this.paymentService = deps.paymentService;
   }
 
   /**
    * Display payment guide for a specific channel
-   * @param {String} channelCode - Payment channel code
-   * @param {String} chatId - Telegram chat ID
-   * @param {Number} messageId - Message ID to delete before showing guide
+   * Renders step-by-step instructions, fees, and minimum amount
+   * 
+   * @param {string} channelCode - Payment channel code (e.g., 'QRIS', 'DANA')
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} messageId - Message ID to delete before showing guide
+   * @param {boolean} [isInfoMode=false] - If true, shows guide in info mode (no "Pay Now" button)
+   * @returns {Promise<void>}
    */
   async showGuide(channelCode, chatId, messageId, isInfoMode = false) {
     logger.debug(`[GuideRouter] showGuide for ${channelCode}, isInfoMode=${isInfoMode}`);
@@ -118,6 +150,11 @@ export class GuideRouter {
 
   /**
    * Handle guide navigation (back, next, etc.)
+   * Placeholder for future guide pagination features
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {string} action - Navigation action
+   * @returns {Promise<void>}
    */
   async handleNavigation(chatId, action) {
     // Future: implement guide pagination if needed

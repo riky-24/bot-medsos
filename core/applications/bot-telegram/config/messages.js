@@ -8,9 +8,9 @@ import { Sanitizer } from '../../../shared/utils/Sanitizer.js';
 export const MESSAGES = {
   // Greetings & Help
   WELCOME: (name = 'Kak') =>
-    ` **HALLO BOSQUE** \n` +
+    ` *HALLO BOSQUE* \n` +
     `━━━━━━━━━━━━━━━━━━━━\n` +
-    `Halo **${name}**, mitra terpercaya untuk top-up game favorit Anda. Kami hadir dengan sistem otomatis 24 jam dan jaminan harga terbaik.\n\n` +
+    `Halo *${name}*, mitra terpercaya untuk top-up game favorit Anda. Kami hadir dengan sistem otomatis 24 jam dan jaminan harga terbaik.\n\n` +
     `• Proses Cepat & Otomatis\n` +
     `• Berbagai Pilihan Pembayaran\n` +
     `• CS Support Siaga 24/7\n\n` +
@@ -20,7 +20,7 @@ export const MESSAGES = {
     ` PUSAT BANTUAN\n` +
     `━━━━━━━━━━━━━━━━━━━━\n` +
     `Halo Bosque, siap membantu kebutuhan top-up Bosque hari ini.\n\n` +
-    `**Panduan Singkat:**\n` +
+    `*Panduan Singkat:*\n` +
     `1. Pilih Game di menu Top Up\n` +
     `2. Masukkan ID Akun dengan benar\n` +
     `3. Selesaikan pembayaran otomatis\n` +
@@ -88,7 +88,7 @@ export const MESSAGES = {
     `Anggun akan memandu Kakak sampai proses selesai! 😊`,
 
   // Menu Navigation
-  TOPUP_MENU_TITLE: `🎮 **PILIH KATEGORI LAYANAN**\n━━━━━━━━━━━━━━━━━━━━\nSilakan pilih kategori produk yang ingin Kakak cari:`,
+  TOPUP_MENU_TITLE: `🎮 *PILIH KATEGORI LAYANAN*\n━━━━━━━━━━━━━━━━━━━━\nSilakan pilih kategori produk yang ingin Kakak cari:`,
 
   TOPUP_VERIFIED_TITLE: ` GAME TERVERIFIKASI\n_(Mendukung Cek Nickname)_`,
   TOPUP_REGULAR_TITLE: ` DAFTAR GAME LAINNYA`,
@@ -146,7 +146,7 @@ export const MESSAGES = {
     `\n\nSilakan pilih saat checkout ya Kak! 😊`,
 
   PAYMENT_CHANNEL_ITEM: (index, name, status, minimal) =>
-    `${index}. **${name}** (${status})\n   Minimal: Rp ${parseInt(minimal).toLocaleString('id-ID')}\n`,
+    `${index}. *${name}* (${status})\n   Minimal: Rp ${parseInt(minimal).toLocaleString('id-ID')}\n`,
 
   // Payment Fee Breakdown
   PAYMENT_FEE_BREAKDOWN: (item, basePrice, channelName, feeType, feeAmount, totalAmount, nickname, isVerified = false) =>

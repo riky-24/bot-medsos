@@ -1,26 +1,64 @@
 /**
- * PaymentChannelHandler
- * Handles payment channel selection and display
- * Responsibility: Show available payment channels, format channel info
+ * @file PaymentChannelHandler.js
+ * @description Displays available payment channels grouped by method type
+ * @responsibility Show payment channel selection UI, group channels by method (E-Wallet, VA, etc.)
+ * 
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires PaymentService - Channel data retrieval
+ * @requires SessionService - User session for UI tracking
+ * @requires UIPersistenceHelper - Single bubble UI experience
+ * @requires Logger - Logging service
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern Presenter Pattern - Formats and displays channel data
+ * 
+ * @example
+ * const handler = new PaymentChannelHandler(deps, config);
+ * await handler.displayChannels(chatId, messageId, 'payment');
+ * // Shows payment channels in checkout mode
+ * 
+ * @modes
+ * - payment: Checkout mode - shows guide buttons for payment flow
+ * - info: Info mode - shows guide buttons for informational purposes
+ * 
+ * @channel_grouping Channels grouped by 'metode' field:
+ * - E-Wallet (QRIS, DANA, OVO, etc.)
+ * - Virtual Account (BCA, BNI, Mandiri, etc.)
+ * - Lainnya (Other methods)
+ * 
+ * @related
+ * - CallbackRouter.js - Routes to this handler
+ * - GuideRouter.js - Displays guides after channel selection
+ * - PaymentService.js - Provides channel data
  */
 import logger from '../../../../shared/services/Logger.js';
+import { BaseHandler } from './BaseHandler.js';
 
-export class PaymentChannelHandler {
+export class PaymentChannelHandler extends BaseHandler {
+  /**
+   * Constructor for PaymentChannelHandler
+   * 
+   * @param {Object} deps - Dependency injection object
+   * @param {Object} deps.paymentService - Payment business logic service
+   * @param {Object} deps.sendPort - Telegram bot messaging interface
+   * @param {Object} config - Configuration object
+   * @extends BaseHandler
+   */
   constructor(deps, config) {
-    this.sendPort = deps.sendPort;
-    this.paymentService = deps.paymentService;
-    this.sessionService = deps.sessionService; // NEW: for UI tracking
-    this.messages = config.messages;
+    super(deps, config); // Initialize base dependencies
 
-    if (deps.ui) {
-      this.ui = deps.ui;
-    }
+    // Additional dependencies specific to PaymentChannelHandler
+    this.paymentService = deps.paymentService;
   }
 
   /**
    * Display payment channels as interactive buttons
-   * @param {String} chatId - Telegram chat ID
-   * @param {Number} messageId - Message ID for editing
+   * Fetches channels from PaymentService and renders them
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} [messageId=null] - Message ID for editing
+   * @param {string} [mode='payment'] - Display mode ('payment' or 'info')
+   * @returns {Promise<void>}
    */
   async displayChannels(chatId, messageId = null, mode = 'payment') {
     logger.info(`[PaymentChannelHandler] Displaying channels for ${chatId}, mode=${mode}`);
@@ -98,7 +136,11 @@ export class PaymentChannelHandler {
 
 
   /**
-   * Group channels by method type
+   * Group channels by method type (e.g. E-Wallet, Virtual Account)
+   * Helper method for organizing channel buttons
+   * 
+   * @param {Array<Object>} channels - List of payment channels
+   * @returns {Object} Channels grouped by method key
    * @private
    */
   groupChannelsByMethod(channels) {
@@ -116,8 +158,12 @@ export class PaymentChannelHandler {
   }
 
   /**
-   * Handle channel selection
-   * Returns guide callback for selected channel
+   * Handle channel selection return value
+   * Returns guide delegation object
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {string} channelCode - Selected channel code
+   * @returns {Promise<Object>} Delegation object for guide display
    */
   async handleSelection(chatId, channelCode) {
     return { delegateTo: 'guide', channelCode, chatId };

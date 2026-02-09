@@ -1,14 +1,53 @@
 import logger from '../../../../shared/services/Logger.js';
 
 /**
+ * @file GameSelectionHandler.js
+ * @description Handles game selection, product listing, and pagination for game top-up services
+ * @responsibility Display available games, show product lists with pagination, handle product selection
+ * 
+ * @requires GameService - Game and product data access
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires SessionService - User session state management
+ * @requires UIPersistenceHelper - Single bubble UI experience
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern Single Responsibility - Only handles game selection logic, no payment processing
+ * 
+ * @example
+ * const handler = new GameSelectionHandler(gameService, sendPort, sessionService, config, ui);
+ * await handler.handleGameSelection(chatId, 'MLBB', messageId);
+ * 
+ * @features
+ * - Paginated product display (10 items per page)
+ * - Real-time price display from VIPReseller
+ * - Support for game categories (verified vs regular)
+ * - Automatic product sorting by price
+ * 
+ * @related
+ * - CallbackRouter.js - Routes game/prod callbacks here
+ * - GameService.js - Provides game and product data
+ */
+
+/**
  * GameSelectionHandler
  * Responsibility: Game selection and detail display only
  * Single Responsibility Principle: Handles ONLY game selection operations
  */
+import { PAGINATION } from './HandlerConstants.js';
 
-const ITEMS_PER_PAGE = 10;
+// Pagination Configuration
+const ITEMS_PER_PAGE = PAGINATION.ITEMS_PER_PAGE;
 
 export class GameSelectionHandler {
+  /**
+   * Constructor for GameSelectionHandler
+   * 
+   * @param {Object} gameService - Service untuk game/product data access
+   * @param {Object} sendPort - Telegram bot messaging port
+   * @param {Object} [sessionService=null] - Session management service
+   * @param {Object} [config=null] - Configuration dengan messages
+   * @param {Object} [ui=null] - Pre-initialized UI helper
+   */
   constructor(gameService, sendPort, sessionService = null, config = null, ui = null) {
     this.gameService = gameService;
     this.sendPort = sendPort;
@@ -18,7 +57,13 @@ export class GameSelectionHandler {
   }
 
   /**
-   * Handle user selecting a game
+   * Handle user selecting a game from menu
+   * Validates game exists and displays product list
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {string} gameCode - Game code (e.g., 'MLBB', 'FREEFIRE')
+   * @param {number} [messageId=null] - Message ID for editing
+   * @returns {Promise<void>}
    */
   async handleGameSelection(chatId, gameCode, messageId = null) {
     logger.info(`[GameSelectionHandler] Handling selection for: ${gameCode}`);
@@ -41,7 +86,14 @@ export class GameSelectionHandler {
   }
 
   /**
-   * Display product list with pagination
+   * Display product list for selected game
+   * Shows paginated list of available products with prices
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} game - Game object with code, name, category
+   * @param {number} [page=1] - Page number for pagination
+   * @param {number} [messageId=null] - Message ID for editing
+   * @returns {Promise<void>}
    */
   async displayProductList(chatId, game, page = 1, messageId = null) {
     logger.debug(`[GameSelectionHandler] Displaying products for ${game.name}, Page: ${page}`);
@@ -97,7 +149,13 @@ export class GameSelectionHandler {
   }
 
   /**
-   * Handle pagination callback
+   * Handle pagination navigation for product list
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {string} gameCode - Game code
+   * @param {number} page - Target page number
+   * @param {number} messageId - Message ID for editing
+   * @returns {Promise<void>}
    */
   async handleGamePagination(chatId, gameCode, page, messageId) {
     const games = await this.gameService.getAvailableGames();
@@ -108,7 +166,13 @@ export class GameSelectionHandler {
   }
 
   /**
-   * Handle product selection callback
+   * Handle product selection from list
+   * Saves selected product to session and displays details
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {string} callbackData - Callback data (format: 'prod_GAMECODE:ITEMCODE')
+   * @param {number} messageId - Message ID for editing
+   * @returns {Promise<void>}
    */
   async handleProductSelection(chatId, callbackData, messageId) {
     let payload = callbackData.startsWith('prod_') ? callbackData.substring(5) : callbackData.substring(8);

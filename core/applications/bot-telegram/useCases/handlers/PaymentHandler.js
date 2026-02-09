@@ -1,13 +1,59 @@
+/**
+ * @file PaymentHandler.js
+ * @description Handles payment flow, invoice generation, and transaction status display
+ * @responsibility Process payments, generate QR/payment detail invoices, display transaction status
+ * 
+ * @requires PaymentService - Payment business logic and invoice creation
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires SessionService - User session state management
+ * @requires GameService - Game data for invoice display
+ * @requires UIPersistenceHelper - Single bubble UI experience
+ * @requires Logger - Logging service
+ * @requires MENUS - Menu configurations for action buttons
+ * @requires PRICING - Pricing constants
+ * @requires QR_CODE - QR code API configuration
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern Service Pattern - Orchestrates payment operations
+ * 
+ * @example
+ * const handler = new PaymentHandler(paymentService, sendPort, sessionService, config, gameService, ui);
+ * await handler.processPayment(chatId, orderData, { messageId });
+ * // Processes payment and shows invoice
+ * 
+ * @payment_flow
+ * 1. handleOrderReview: Show order summary with confirmation
+ * 2. processPayment: Create invoice via PaymentService
+ * 3. sendQRInvoice: Display QR code for QRIS/E-Wallet
+ * 4. sendPaymentDetails: Display payment code/link for VA/other
+ * 5. sendTransactionStatus: Show transaction status updates
+ * 
+ * @invoice_types
+ * - QR Invoice: For QRIS, DANA, OVO (displays QR code image)
+ * - Payment Details: For Virtual Account, Direct Link (displays payment code/link)
+ * - Transaction Status: Status check view with refresh button
+ * 
+ * @related
+ * - ActionRouter.js - Calls payment processing methods
+ * - PaymentService.js - Business logic implementation
+ * - UIPersistenceHelper.js - Single bubble UI management
+ */
 import { MENUS } from '../../config/menus.js';
 import { PRICING, QR_CODE } from '../../../../shared/config/constants.js';
 import logger from '../../../../shared/services/Logger.js';
+import { TIMEOUTS } from './HandlerConstants.js';
 
-/**
- * PaymentHandler
- * Responsibility: Payment flow and invoice generation only
- * Single Responsibility Principle: Handles ONLY payment-related operations
- */
 export class PaymentHandler {
+  /**
+   * Constructor for PaymentHandler
+   * 
+   * @param {Object} paymentService - Service for payment logic and invoice creation
+   * @param {Object} sendPort - Telegram bot messaging interface
+   * @param {Object} [sessionService=null] - Session management service
+   * @param {Object} [config=null] - Configuration object
+   * @param {Object} [gameService=null] - Game data service
+   * @param {Object} [ui=null] - Pre-initialized UI helper
+   */
   constructor(paymentService, sendPort, sessionService = null, config = null, gameService = null, ui = null) {
     this.paymentService = paymentService;
     this.sendPort = sendPort;
@@ -19,6 +65,13 @@ export class PaymentHandler {
 
   /**
    * Display order review invoice with confirmation buttons
+   * Shows detailed breakdown of the order before final processing
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} orderData - Order details (game, item, price, etc.)
+   * @param {Object} [options={}] - Additional options
+   * @param {number} [options.messageId] - Message ID for editing
+   * @returns {Promise<void>}
    */
   async handleOrderReview(chatId, orderData, options = {}) {
     const messageId = options.messageId || null;
@@ -49,7 +102,13 @@ export class PaymentHandler {
   }
 
   /**
-   * Process payment and send QR invoice
+   * Process payment and send invoice
+   * Creates invoice via PaymentService and dispatches to appropriate display method (QR or Details)
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} [orderData=null] - Order details
+   * @param {Object} [options={}] - Additional options
+   * @returns {Promise<void>}
    */
   async processPayment(chatId, orderData = null, options = {}) {
     if (!this.paymentService) {
@@ -89,6 +148,13 @@ export class PaymentHandler {
 
   /**
    * Send QR code invoice with payment details
+   * Renders QR code image with caption and action buttons
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} result - Payment creation result
+   * @param {Object} orderData - Order details
+   * @param {Object} [options={}] - Additional options
+   * @returns {Promise<void>}
    */
   async sendQRInvoice(chatId, result, orderData, options = {}) {
     // Note: this.ui is injected via constructor
@@ -122,6 +188,11 @@ export class PaymentHandler {
 
   /**
    * Send payment link as text (fallback)
+   * Used when QR image generation fails or as alternative display
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} result - Payment creation result
+   * @returns {Promise<void>}
    */
   async sendPaymentLinkFallback(chatId, result) {
     const payMsg = this.messages.PAYMENT_INVOICE_FALLBACK(result.payment_url, result.qr_string || '-');
@@ -134,12 +205,19 @@ export class PaymentHandler {
   }
 
   /**
-   * Send payment details for non-QR methods
+   * Send payment details for non-QR methods (VA, Retail, etc.)
+   * Displays payment code (VA number) or payment URL
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} result - Payment creation result
+   * @param {Object} orderData - Order details
+   * @param {Object} [options={}] - Additional options
+   * @returns {Promise<void>}
    */
   async sendPaymentDetails(chatId, result, orderData, options = {}) {
     const trxId = result.trx_id || orderData.merchantRef || '-';
     const trxDate = orderData.createdAt ? new Date(orderData.createdAt) : new Date();
-    const expiryDate = result.expiry_date ? new Date(result.expiry_date) : new Date(trxDate.getTime() + 24 * 60 * 60 * 1000);
+    const expiryDate = result.expiry_date ? new Date(result.expiry_date) : new Date(trxDate.getTime() + TIMEOUTS.PAYMENT_EXPIRY_MS);
 
     const statusMap = { 'PENDING': this.messages.STATUS_WAITING, 'PAID': this.messages.STATUS_SUCCESS, 'FAILED': this.messages.STATUS_FAILED, 'EXPIRED': this.messages.STATUS_EXPIRED, 'PROCESSING': '⚙️ DIPROSES' };
     const statusText = statusMap[(result.status || 'PENDING').toUpperCase()] || result.status;
@@ -178,6 +256,12 @@ export class PaymentHandler {
 
   /**
    * Send Transaction Status View
+   * Displays current status of transaction with refresh button
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {Object} statusData - Transaction status object
+   * @param {Object} [options={}] - Additional options
+   * @returns {Promise<void>}
    */
   async sendTransactionStatus(chatId, statusData, options = {}) {
     const statusMap = { 'UNPAID': this.messages.STATUS_WAITING, 'PAID': this.messages.STATUS_SUCCESS, 'FAILED': this.messages.STATUS_FAILED, 'EXPIRED': this.messages.STATUS_EXPIRED };

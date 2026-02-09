@@ -4,6 +4,54 @@ import logger from '../../../../shared/services/Logger.js';
 import { GuideRouter } from './GuideRouter.js';
 import { PaymentChannelHandler } from './PaymentChannelHandler.js';
 import { PERMISSIONS } from '../../security/authz/permissions.js';
+import { RouterResponse } from './RouterResponse.js';
+import { PARSING } from './HandlerConstants.js';
+
+/**
+ * @file CallbackRouter.js
+ * @description Main callback orchestrator that routes Telegram button callbacks to specialized handlers
+ * @responsibility Parse callback data, perform security checks, and delegate to appropriate sub-routers
+ * 
+ * @requires MenuRouter - Handles menu navigation callbacks
+ * @requires ActionRouter - Handles payment actions and confirmations
+ * @requires GuideRouter - Handles payment guide display
+ * @requires PaymentChannelHandler - Handles payment channel selection
+ * @requires GameSelectionHandler - Handles game and product selection
+ * @requires AuthPort - Authorization service for permission checks
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires SessionService - User session state management
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern Router Pattern - Delegates to specialized routers based on callback prefix
+ * 
+ * @example
+ * const callbackRouter = new CallbackRouter(menuHandler, paymentHandler, gameSelectionHandler, sendPort, sessionService, config, ui, authPort);
+ * await callbackRouter.route('menu_topup', chatId, startHandler, messageId);
+ * // Delegates to MenuRouter.route('topup', chatId, messageId)
+ * 
+ * @callback_format Callbacks follow pattern: "prefix_action" or "prefix_action_data"
+ * Supported prefixes:
+ * - menu: Menu navigation (e.g., menu_topup, menu_payment)
+ * - action: Payment actions (e.g., action_pay_QRIS, action_cancel)
+ * - guide: Payment guides - checkout mode (e.g., guide_QRIS)
+ * - info: Payment guides - info mode (e.g., info_QRIS)
+ * - game: Game selection (e.g., game_MLBB, game_MLBB_page_2)
+ * - prod: Product selection (e.g., prod_MLBB:100DM)
+ * - home/start: Navigate to main menu
+ * - delete: Delete message (delete_msg)
+ * - status: Status indicators (status_empty)
+ * 
+ * @security
+ * - Global ban check via authPort.can(PERMISSIONS.ACCESS_BOT)
+ * - Callback data parsing with error handling
+ * - Delegation to authorized handlers only
+ * 
+ * @related
+ * - MenuRouter.js - Menu navigation logic
+ * - ActionRouter.js - Payment action logic
+ * - GuideRouter.js - Payment guide display
+ * - PaymentChannelHandler.js - Channel selection
+ */
 
 /**
  * CallbackRouter (Refactored)
@@ -11,6 +59,19 @@ import { PERMISSIONS } from '../../security/authz/permissions.js';
  * Responsibility: Parse callbacks and delegate to appropriate router
  */
 export class CallbackRouter {
+  /**
+   * Constructor for CallbackRouter
+   * Initializes all sub-routers and dependencies
+   * 
+   * @param {Object} menuHandler - Handler for menu generation
+   * @param {Object} paymentHandler - Handler for payment UI and logic
+   * @param {Object} gameSelectionHandler - Handler for game/product selection
+   * @param {Object} sendPort - Telegram bot messaging interface
+   * @param {Object} [sessionService=null] - Session management service
+   * @param {Object} config - Configuration object with messages
+   * @param {Object} [ui=null] - Pre-initialized UI helper
+   * @param {Object} [authPort=null] - Authorization service
+   */
   constructor(menuHandler, paymentHandler, gameSelectionHandler, sendPort, sessionService = null, config, ui = null, authPort = null) {
     // Create dependencies object for routers
     const deps = {
@@ -42,10 +103,13 @@ export class CallbackRouter {
 
   /**
    * Route callback query to appropriate handler
-   * @param {String} callbackData - Callback data from button click
-   * @param {String} chatId - Telegram chat ID
+   * Parses callback data prefix and delegates to specialized router
+   * 
+   * @param {string} callbackData - Raw callback data from button click
+   * @param {string} chatId - Telegram chat identifier
    * @param {Function} startHandler - Start command handler (for home navigation)
-   * @param {Number} messageId - Message ID for editing
+   * @param {number} [messageId=null] - Message ID for editing
+   * @returns {Promise<RouterResponse|void>} Router response or void
    */
   async route(callbackData, chatId, startHandler, messageId = null) {
     logger.debug(`[CallbackRouter] Routing: ${callbackData}`);
@@ -62,7 +126,7 @@ export class CallbackRouter {
 
       if (!hasAccess) {
         logger.warn(`[CallbackRouter] ⛔ Blocked Banned User: ${chatId}`);
-        return { toast: "❌ Akun Anda diblokir sementara." };
+        return RouterResponse.toast("❌ Akun Anda diblokir sementara.");
       }
 
       // Parse callback data format: "prefix_action" or "prefix_action_data"
@@ -79,9 +143,6 @@ export class CallbackRouter {
             await this.displayPaymentChannels(result.chatId, result.messageId, result.mode || 'payment');
           }
           return result;
-
-        // Remove manual menu_info check since MenuRouter handles it now via 'menu' prefix
-
 
         case 'action':
           return await this.actionRouter.route(action, chatId, messageId);
@@ -117,7 +178,7 @@ export class CallbackRouter {
           } else {
             await this.menuHandler.showMainMenu(chatId);
           }
-          return { toast: '' }; // stop spinner
+          return RouterResponse.toast(); // stop spinner
 
         case 'delete':
           if (callbackData === 'delete_msg') {
@@ -125,13 +186,13 @@ export class CallbackRouter {
               await this.sendPort.deleteMessage(chatId, messageId);
             } catch (e) { /* ignore delete error */ }
           }
-          return { toast: '' }; // stop spinner
+          return RouterResponse.toast(); // stop spinner
 
         case 'status':
           if (action.startsWith('empty')) {
-            return { toast: this.messages.ERR_OUT_OF_STOCK || "⚠️ Produk sedang kosong." };
+            return RouterResponse.toast(this.messages.ERR_OUT_OF_STOCK || "⚠️ Produk sedang kosong.");
           }
-          return { toast: '' };
+          return RouterResponse.toast();
 
         default:
           logger.warn(`[CallbackRouter] Unknown prefix: ${prefix} | ChatId: ${chatId}`);
@@ -148,7 +209,12 @@ export class CallbackRouter {
 
   /**
    * Handle game selection callbacks
-   * Delegates to GameSelectionHandler
+   * Delegates to GameSelectionHandler for game list or pagination
+   * 
+   * @param {string} action - Action string (e.g., 'MLBB' or 'MLBB_page_2')
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} messageId - Message ID for editing
+   * @returns {Promise<void>}
    * @private
    */
   async handleGameCallback(action, chatId, messageId) {
@@ -159,7 +225,7 @@ export class CallbackRouter {
     if (action.includes('_page_')) {
       // parts: ['CODE', 'page', 'N']
       const gameCode = parts[0];
-      const page = parseInt(parts[2], 10);
+      const page = parseInt(parts[2], PARSING.DECIMAL_RADIX);
 
       if (isNaN(page)) {
         logger.error(`[CallbackRouter] Invalid page number: ${parts[2]}`);
@@ -177,7 +243,12 @@ export class CallbackRouter {
 
   /**
    * Handle product selection callbacks
-   * Delegates to GameSelectionHandler
+   * Delegates to GameSelectionHandler for product details
+   * 
+   * @param {string} callbackData - Full callback string (e.g., 'prod_MLBB:100DM')
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} messageId - Message ID for editing
+   * @returns {Promise<void>}
    * @private
    */
   async handleProductCallback(callbackData, chatId, messageId) {
@@ -187,7 +258,13 @@ export class CallbackRouter {
   }
 
   /**
-   * Display payment channels (public method for compatibility)
+   * Display payment channels
+   * Public method to allow external modules to trigger channel display
+   * 
+   * @param {string} chatId - Telegram chat identifier
+   * @param {number} [messageId=null] - Message ID for editing
+   * @param {string} [mode='payment'] - Display mode ('payment' or 'info')
+   * @returns {Promise<void>}
    */
   async displayPaymentChannels(chatId, messageId = null, mode = 'payment') {
     await this.channelHandler.displayChannels(chatId, messageId, mode);

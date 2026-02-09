@@ -1,13 +1,73 @@
+/**
+ * @file SessionInputHandler.js
+ * @description Handles user text input when in session state (waiting for player ID/game ID)
+ * @responsibility Validate input, check player nicknames via API, save to session, show confirmation
+ * 
+ * @requires SessionService - User session state management
+ * @requires SendPort - Telegram bot messaging interface
+ * @requires GameProviderService - External API for player validation
+ * @requires GameService - Game data access
+ * @requires InputValidationService - Input parsing and intent detection
+ * @requires NicknameRateLimiter - Rate limiting for API calls
+ * @requires UIPersistenceHelper - Single bubble UI experience
+ * @requires AuthPort - Authorization service
+ * @requires Sanitizer - Input sanitization (TODO: implement usage)
+ * @requires Logger - Logging service
+ * @requires PERMISSIONS - Authorization permissions
+ * @requires GAME_VALIDATION_SCHEMAS - Local validation patterns (lazy loaded)
+ * @requires GAME_NORMALIZATION_RULES - Game code mapping (lazy loaded)
+ * 
+ * @architecture Hexagonal Architecture - Application Layer
+ * @pattern State Machine - Handles state-dependent input processing
+ * 
+ * @example
+ * const handler = new SessionInputHandler(sessionService, sendPort, config, gameProviderService, ...);
+ * const handled = await handler.handle(message);
+ * // Returns true if input was handled, false otherwise
+ * 
+ * @input_flow
+ * 1. Security check: Verify user not banned
+ * 2. Intent detection: Command, ignore, or data
+ * 3. Local validation: Check format against GAME_VALIDATION_SCHEMAS
+ * 4. Rate limiting: Check API quota for nickname validation
+ * 5. API validation: Verify player ID with game provider
+ * 6. Session update: Save validated data
+ * 7. Confirmation: Show player ID confirmation UI
+ * 
+ * @validation_layers
+ * - Layer 1: Input intent classification (command/ignore/data)
+ * - Layer 2: Local schema validation (regex pattern matching)
+ * - Layer 3: Rate limiting (prevent API abuse)
+ * - Layer 4: External API validation (nickname check)
+ * 
+ * @security
+ * - Ban check via authPort.can(PERMISSIONS.ACCESS_BOT)
+ * - Rate limiting for nickname API calls
+ * - Input sanitization (TODO: currently unused Sanitizer import)
+ * 
+ * @related
+ * - BotController.js - Routes messages to this handler when in session
+ * - InputValidationService.js - Intent detection logic
+ * - GameProviderService.js - External API integration
+ */
 import logger from '../../../../shared/services/Logger.js';
 
 import { Sanitizer } from '../../../../shared/utils/Sanitizer.js';
 import { PERMISSIONS } from '../../security/authz/permissions.js';
-
-/**
- * SessionInputHandler
- * Responsibility: Handle message input when a user is in a specific session state (e.g. waiting for Game ID)
- */
 export class SessionInputHandler {
+    /**
+     * Constructor for SessionInputHandler
+     * 
+     * @param {Object} sessionService - User session state management
+     * @param {Object} sendPort - Telegram bot messaging interface
+     * @param {Object} config - Configuration object with messages
+     * @param {Object} gameProviderService - External API for player validation
+     * @param {Object} [gameService=null] - Game data access
+     * @param {Object} [inputValidationService=null] - Input parsing and intent detection
+     * @param {Object} [nicknameRateLimiter=null] - Rate limiting for API calls
+     * @param {Object} [ui=null] - Pre-initialized UI helper
+     * @param {Object} [authPort=null] - Authorization service
+     */
     constructor(sessionService, sendPort, config, gameProviderService, gameService = null, inputValidationService = null, nicknameRateLimiter = null, ui = null, authPort = null) {
         this.sessionService = sessionService;
         this.sendPort = sendPort;
@@ -22,8 +82,13 @@ export class SessionInputHandler {
 
     /**
      * Handle input based on pending session
+     * Processes command, ignore, and data intents for player validation
+     * 
      * @param {Object} message - Message entity
-     * @returns {Boolean} True if handled, false otherwise
+     * @param {string} message.chatId - Telegram chat identifier
+     * @param {number} message.messageId - Message ID
+     * @param {string} message.text - User input text
+     * @returns {Promise<boolean>} True if handled, false otherwise
      */
     async handle(message) {
         // SECURITY CHECK: Global Ban
