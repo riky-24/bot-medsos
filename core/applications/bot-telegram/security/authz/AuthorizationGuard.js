@@ -45,7 +45,6 @@ export class AuthorizationGuard extends AuthorizationPort {
 
         if (isBanned) {
             logger.warn(`[AUTHZ_BAN] Blocked access from banned user | User: ${userId} | Permission: ${permission}`);
-            console.warn(`[AuthZ] Blocked banned user: ${userId}`);
             return false;
         }
 
@@ -62,7 +61,6 @@ export class AuthorizationGuard extends AuthorizationPort {
                 if (user && user.role === 'admin') return true;
 
                 logger.warn(`[AUTHZ_IDOR] Resource ownership mismatch | User: ${userId} | Owner: ${resource.ownerId} | ResourceId: ${resource.id || 'N/A'}`);
-                console.warn(`[AuthZ] Ownership mismatch. User: ${userId}, Owner: ${resource.ownerId}`);
                 return false;
             }
         }

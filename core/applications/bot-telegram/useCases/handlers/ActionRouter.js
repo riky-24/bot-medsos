@@ -13,8 +13,6 @@ export class ActionRouter {
     this.sessionService = deps.sessionService;
     this.paymentHandler = deps.paymentHandler;
     this.menuHandler = deps.menuHandler;
-    this.paymentHandler = deps.paymentHandler;
-    this.menuHandler = deps.menuHandler;
     this.messages = config.messages;
     this.authPort = deps.authPort; // Security Port
 
