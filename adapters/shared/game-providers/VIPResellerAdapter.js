@@ -22,7 +22,7 @@ export class VIPResellerAdapter extends GameProviderPort {
     this.timeout = config.timeout || 30000;
   }
 
-  generateSign() {
+  _generateSign() {
     // Ensure credentials are trimmed strings to avoid sneaky spaces in .env
     const id = String(this.apiId || '').trim();
     const key = String(this.apiKey || '').trim();
@@ -32,7 +32,7 @@ export class VIPResellerAdapter extends GameProviderPort {
       .digest('hex');
   }
 
-  async makeRequest(payload) {
+  async _makeRequest(payload) {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('Request timeout')), this.timeout);
     });
@@ -58,19 +58,15 @@ export class VIPResellerAdapter extends GameProviderPort {
       body: formData
     });
 
-    try {
-      const response = await Promise.race([fetchPromise, timeoutPromise]);
-      const data = await response.json();
-      logger.debug(`[VIPReseller] API Response: ${JSON.stringify(data).substring(0, 500)}`);
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    const data = await response.json();
+    logger.debug(`[VIPReseller] API Response: ${JSON.stringify(data).substring(0, 500)}`);
 
-      if (data.result === false && data.message && (data.message.includes('IP') || data.message.includes('Signature'))) {
-        throw new Error(`${data.message}`);
-      }
-
-      return data;
-    } catch (error) {
-      throw error;
+    if (data.result === false && data.message && (data.message.includes('IP') || data.message.includes('Signature'))) {
+      throw new Error(`${data.message}`);
     }
+
+    return data;
   }
 
   async orderTopUp(orderData) {
@@ -81,14 +77,14 @@ export class VIPResellerAdapter extends GameProviderPort {
     try {
       const payload = {
         key: this.apiKey,
-        sign: this.generateSign(),
+        sign: this._generateSign(),
         type: 'order',
         service: orderData.serviceId,
         data_no: orderData.playerId,
         data_zone: orderData.zoneId || ''
       };
 
-      const data = await this.makeRequest(payload);
+      const data = await this._makeRequest(payload);
       if (data.result === true && data.data) {
         return {
           success: true,
@@ -113,12 +109,12 @@ export class VIPResellerAdapter extends GameProviderPort {
     try {
       const payload = {
         key: this.apiKey,
-        sign: this.generateSign(),
+        sign: this._generateSign(),
         type: 'services',
         filter_game: gameCode
       };
 
-      const data = await this.makeRequest(payload);
+      const data = await this._makeRequest(payload);
 
       if (data.result === true && Array.isArray(data.data)) {
         return data.data.map(service => ({
@@ -138,8 +134,8 @@ export class VIPResellerAdapter extends GameProviderPort {
       }
       return [];
     } catch (error) {
-      logger.warn(`[VIPReseller] Get services simulation: ${error.message}`);
-      return this.simulateServicesResponse(gameCode);
+      logger.warn(`[VIPReseller] Get services failed: ${error.message}`);
+      return [];
     }
   }
 
@@ -150,11 +146,11 @@ export class VIPResellerAdapter extends GameProviderPort {
     try {
       const payload = {
         key: this.apiKey,
-        sign: this.generateSign(),
+        sign: this._generateSign(),
         type: 'status',
         trxid: orderId
       };
-      const data = await this.makeRequest(payload);
+      const data = await this._makeRequest(payload);
       if (data.result === true && data.data) {
         // Data can be an array or object
         const trx = Array.isArray(data.data) ? data.data[0] : data.data;
@@ -178,14 +174,14 @@ export class VIPResellerAdapter extends GameProviderPort {
     try {
       const payload = {
         key: this.apiKey,
-        sign: this.generateSign(),
+        sign: this._generateSign(),
         type: 'nickname',
         code: gameCode,
         target: String(playerId).trim(),
         additional_target: zoneId ? String(zoneId).trim() : ''
       };
 
-      const data = await this.makeRequest(payload);
+      const data = await this._makeRequest(payload);
 
       if (data.result === true) {
         logger.info(`[VIPReseller] ✅ Nickname check SUCCESS | GameCode: ${gameCode} | PlayerId: ${playerId} | ZoneId: ${zoneId || 'null'} | Nickname: ${data.data}`);

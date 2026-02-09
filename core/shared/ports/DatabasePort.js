@@ -37,4 +37,12 @@ export class DatabasePort {
   isConnected() {
     throw new Error('DatabasePort.isConnected() must be implemented by adapter');
   }
+
+  /**
+   * Health check for database connection
+   * @returns {Promise<Object>} Health status with metrics
+   */
+  async healthCheck() {
+    throw new Error('DatabasePort.healthCheck() must be implemented by adapter');
+  }
 }

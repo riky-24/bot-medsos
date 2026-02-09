@@ -1,6 +1,13 @@
 import crypto from 'crypto';
 import logger, { securityLogger } from '../../../core/shared/services/Logger.js';
 
+/**
+ * VIPResellerCallbackHandler
+ * Handles incoming webhook callbacks from VIPReseller game provider.
+ * Processes transaction status updates and notifies users via Telegram.
+ * 
+ * Used by: Express routes for VIPReseller webhook endpoint
+ */
 export class VIPResellerCallbackHandler {
     /**
      * @param {String} apiId - VIPReseller API ID
@@ -91,9 +98,8 @@ export class VIPResellerCallbackHandler {
 
             res.json({ success: true });
         } catch (error) {
-            logger.error("[VIPReseller-Callback] Error:", error);
+            logger.error(`[VIPReseller-Callback] Error: ${error.message}`);
             res.status(500).json({ success: false, message: 'Internal Server Error' });
         }
     }
 }
-

@@ -3,7 +3,6 @@ import { Message } from "../../../core/shared/entities/Message.js";
 import { TelegramPort } from "../../../core/shared/ports/TelegramPort.js";
 import logger from "../../../core/shared/services/Logger.js";
 
-
 /**
  * TelegramAdapter
  * Implements TelegramPort for Hexagonal Architecture
@@ -125,7 +124,6 @@ export class TelegramAdapter extends TelegramPort {
     return await this.request("setMyDescription", "POST", body);
   }
 
-
   async setMyShortDescription(shortDescription) {
     const body = { short_description: shortDescription };
     return await this.request("setMyShortDescription", "POST", body);
@@ -152,8 +150,14 @@ export class TelegramAdapter extends TelegramPort {
       });
     } else if (u.callback_query) {
       logger.info(`[TelegramAdapter] Received callback: ${u.callback_query.data}`);
-      // Handle callback query (button click)
       const cb = u.callback_query;
+
+      // Defensive check: cb.message can be undefined for old callbacks
+      if (!cb.message) {
+        logger.warn(`[TelegramAdapter] Callback query without message (may be too old)`);
+        return null;
+      }
+
       const senderName = cb.from.first_name || cb.from.username || 'Kak';
 
       return new Message({

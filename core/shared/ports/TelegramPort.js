@@ -91,6 +91,24 @@ export class TelegramPort {
     }
 
     /**
+     * Set bot description (shown on bot profile)
+     * @param {String} description
+     * @returns {Promise<Object>}
+     */
+    async setMyDescription(description) {
+        throw new Error('TelegramPort.setMyDescription() must be implemented');
+    }
+
+    /**
+     * Set bot short description (shown on start screen)
+     * @param {String} shortDescription
+     * @returns {Promise<Object>}
+     */
+    async setMyShortDescription(shortDescription) {
+        throw new Error('TelegramPort.setMyShortDescription() must be implemented');
+    }
+
+    /**
      * Parse incoming update to Message entity
      * @param {Object} update - Raw Telegram update object
      * @returns {Message|null}

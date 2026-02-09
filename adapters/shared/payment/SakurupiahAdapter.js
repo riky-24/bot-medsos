@@ -1,6 +1,4 @@
 import crypto from 'crypto';
-// import fetch from 'node-fetch'; // Native in Node 20
-// import FormData from 'form-data'; // Native in Node 20
 import { PaymentPort } from '../../../core/shared/ports/PaymentPort.js';
 import logger from '../../../core/shared/services/Logger.js';
 
@@ -19,7 +17,7 @@ export class SakurupiahAdapter extends PaymentPort {
     this.apiId = config.apiId || process.env.SAKURUPIAH_API_ID;
 
     // Configurable URLs - no more hardcoded values
-    this.baseUrl = config.baseUrl || process.env.SAKURUPIAH_BASE_URL || "https://sakurupiah.id/api-sanbox";
+    this.baseUrl = config.baseUrl || process.env.SAKURUPIAH_BASE_URL || "https://sakurupiah.id/api-sandbox";
     this.callbackUrl = config.callbackUrl || process.env.PAYMENT_CALLBACK_URL || null;
     this.returnUrl = config.returnUrl || process.env.PAYMENT_RETURN_URL || null;
   }
@@ -289,6 +287,65 @@ export class SakurupiahAdapter extends PaymentPort {
       return data;
     } catch (e) {
       logger.error(`[Sakurupiah] Check Status Error: ${e.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get transaction details by transaction ID
+   * @param {String} trxId - Transaction ID from payment gateway
+   * @returns {Promise<Object>} Transaction details
+   */
+  async getTransactionDetails(trxId) {
+    // Handle Simulation IDs locally
+    if (trxId.startsWith('SIMULATION-')) {
+      logger.info(`[Sakurupiah] Handling Simulation ID for details: ${trxId}`);
+      return {
+        trx_id: trxId,
+        status: 'pending',
+        amount: 0,
+        message: 'Simulated Transaction'
+      };
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('api_id', this.apiId);
+      formData.append('method', 'detail');
+      formData.append('trx_id', trxId);
+
+      const response = await fetch(`${this.baseUrl}/transaction.php`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: formData
+      });
+
+      const text = await response.text();
+
+      if (text.trim().startsWith('<')) {
+        logger.error(`[Sakurupiah] Transaction Details Returned HTML: ${text.substring(0, 100)}...`);
+        return null;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        logger.error(`[Sakurupiah] Invalid JSON in Transaction Details: ${text.substring(0, 100)}`);
+        return null;
+      }
+
+      logger.debug(`[Sakurupiah] Transaction Details Response: ${JSON.stringify(data)}`);
+
+      if (data.status === "200" && data.data) {
+        return Array.isArray(data.data) ? data.data[0] : data.data;
+      }
+
+      return null;
+    } catch (e) {
+      logger.error(`[Sakurupiah] Get Transaction Details Error: ${e.message}`);
       return null;
     }
   }

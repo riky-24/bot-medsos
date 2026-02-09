@@ -5,11 +5,10 @@ import { fileURLToPath } from 'url';
 import https from 'https';
 import os from 'os';
 import logger from '../../core/shared/services/Logger.js';
+import { InfrastructurePort } from '../../core/shared/ports/InfrastructurePort.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '../../..');
-
-import { InfrastructurePort } from '../../core/shared/ports/InfrastructurePort.js';
 
 export class CloudflareTunnelAdapter extends InfrastructurePort {
     constructor(config = {}) {
@@ -25,6 +24,7 @@ export class CloudflareTunnelAdapter extends InfrastructurePort {
         this.binDir = path.resolve(ROOT_DIR, 'infrastructure', 'cloudflare-tunnel', 'bin');
         this.binPath = path.resolve(this.binDir, this.binName);
         this.tunnelProcess = null;
+        this._signalHandlersRegistered = false;
     }
 
     async start() {
@@ -75,12 +75,15 @@ export class CloudflareTunnelAdapter extends InfrastructurePort {
             }
         });
 
-        // Ensure we kill tunnel when app dies
-        process.on('SIGINT', () => this.stop());
-        process.on('SIGTERM', () => this.stop());
+        // Ensure we kill tunnel when app dies (register only once)
+        if (!this._signalHandlersRegistered) {
+            process.on('SIGINT', () => this.stop());
+            process.on('SIGTERM', () => this.stop());
+            this._signalHandlersRegistered = true;
+        }
     }
 
-    stop() {
+    async stop() {
         if (this.tunnelProcess && !this.tunnelProcess.killed) {
             logger.info('[Tunnel] Stopping...');
             this.tunnelProcess.kill();

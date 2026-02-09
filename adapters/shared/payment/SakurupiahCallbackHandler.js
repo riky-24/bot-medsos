@@ -58,22 +58,26 @@ export class SakurupiahCallbackHandler {
         let messageToUser = "";
         let shouldNotify = false;
 
+        // Escape special chars for MarkdownV2: _ * [ ] ( ) ~ ` > # + - = | { } . !
+        const escapeMdV2 = (text) => text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+        const escapedRef = escapeMdV2(merchant_ref);
+
         if (newStatus === "PAID") {
-          messageToUser = `✅ **Pembayaran Berhasil!**\n\nTerima kasih Kak, pesanan dengan Ref: \`${merchant_ref}\` sudah kami terima. Saldo/Item akan segera masuk! 🚀`;
+          messageToUser = `✅ *Pembayaran Berhasil\\!*\n\nTerima kasih Kak, pesanan dengan Ref: \`${escapedRef}\` sudah kami terima\\. Saldo/Item akan segera masuk\\! 🚀`;
           shouldNotify = true;
         } else if (newStatus === "EXPIRED") {
-          messageToUser = `⚠️ **Pembayaran Expired**\n\nMaaf Kak, pesanan \`${merchant_ref}\` sudah kadaluarsa. Silakan order ulang ya. 🙏`;
+          messageToUser = `⚠️ *Pembayaran Expired*\n\nMaaf Kak, pesanan \`${escapedRef}\` sudah kadaluarsa\\. Silakan order ulang ya\\. 🙏`;
           shouldNotify = true;
         } else if (newStatus === "FAILED") {
-          messageToUser = `❌ **Pembayaran Gagal**\n\nMaaf Kak, transaksi \`${merchant_ref}\` dinyatakan gagal oleh sistem. Silakan hubungi admin.`;
+          messageToUser = `❌ *Pembayaran Gagal*\n\nMaaf Kak, transaksi \`${escapedRef}\` dinyatakan gagal oleh sistem\\. Silakan hubungi admin\\.`;
           shouldNotify = true;
         }
 
         if (shouldNotify && trx.userId && this.bot.sendPort) {
           logger.info(`[Callback] Notifying user ${trx.userId} about status: ${newStatus}`);
+          const options = { parse_mode: 'MarkdownV2' };
 
           if (trx.messageId) {
-            const options = { parse_mode: 'Markdown' };
             try {
               // Try to edit caption first (assuming it was a photo invoice)
               await this.bot.sendPort.editMessageCaption(trx.userId, trx.messageId, messageToUser, options);
@@ -89,7 +93,7 @@ export class SakurupiahCallbackHandler {
               }
             }
           } else {
-            await this.bot.sendPort.sendMessage(trx.userId, messageToUser, { parse_mode: 'Markdown' });
+            await this.bot.sendPort.sendMessage(trx.userId, messageToUser, options);
           }
         }
       } else {
