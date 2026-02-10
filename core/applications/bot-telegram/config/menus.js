@@ -3,6 +3,8 @@
  * Defines all inline keyboard layouts for the bot
  */
 
+import { PAGINATION } from '../useCases/handlers/HandlerConstants.js';
+
 export const MENUS = {
   // Main menu
   MAIN: {
@@ -71,7 +73,10 @@ export function generateTopUpMenu(games, page = 1, pageSize = 10) {
 
   // Pagination logic
   const totalPages = Math.ceil(games.length / pageSize);
-  const safePage = Math.max(1, Math.min(page, totalPages));
+  const maxPage = PAGINATION.MAX_PAGE || 20;
+  const effectiveTotalPages = Math.min(totalPages, maxPage);
+
+  const safePage = Math.max(1, Math.min(page, effectiveTotalPages));
 
   const startIndex = (safePage - 1) * pageSize;
   const paginatedGames = games.slice(startIndex, startIndex + pageSize);
@@ -92,7 +97,7 @@ export function generateTopUpMenu(games, page = 1, pageSize = 10) {
   if (safePage > 1) {
     navRow.push({ text: "⬅️ Prev", callback_data: `menu_topup_page_${safePage - 1}` });
   }
-  if (safePage < totalPages) {
+  if (safePage < effectiveTotalPages) {
     navRow.push({ text: "Next ➡️", callback_data: `menu_topup_page_${safePage + 1}` });
   }
 
@@ -107,7 +112,7 @@ export function generateTopUpMenu(games, page = 1, pageSize = 10) {
     },
     pageInfo: {
       current: safePage,
-      total: totalPages,
+      total: effectiveTotalPages,
       count: games.length
     }
   };

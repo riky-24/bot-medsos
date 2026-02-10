@@ -35,6 +35,7 @@
  * - PaymentChannelHandler.js - Extends BaseHandler
  */
 import logger from '../../../../shared/services/Logger.js';
+import { UIPersistenceHelper } from '../helpers/UIPersistenceHelper.js';
 
 export class BaseHandler {
     /**
@@ -61,20 +62,14 @@ export class BaseHandler {
 
     /**
      * Ensure UI helper is initialized
-     * Uses dynamic import for lazy loading
+     * Lazily instantiates UIPersistenceHelper if not injected via constructor
      * @protected
      */
-    async ensureUI() {
+    ensureUI() {
         if (!this.ui) {
-            try {
-                const { UIPersistenceHelper } = await import('../helpers/UIPersistenceHelper.js');
-                this.ui = new UIPersistenceHelper(this.sendPort, this.sessionService);
-                this._uiInitialized = true;
-                logger.debug(`[${this.constructor.name}] UI helper initialized via dynamic import`);
-            } catch (error) {
-                logger.error(`[${this.constructor.name}] Failed to load UI helper:`, error);
-                throw new Error('UI helper initialization failed');
-            }
+            this.ui = new UIPersistenceHelper(this.sendPort, this.sessionService);
+            this._uiInitialized = true;
+            logger.debug(`[${this.constructor.name}] UI helper initialized`);
         }
     }
 
@@ -131,22 +126,84 @@ export class BaseHandler {
     }
 
     /**
+     * Structured error logging (log only, no message to user)
+     * Use this when you want rich context in logs without notifying the user.
+     * 
+     * @param {String} context - Action context (e.g., 'Display Products', 'Process Payment')
+     * @param {Error} error - Error object
+     * @param {Object} [meta={}] - Additional metadata for debugging
+     * @param {String} [meta.chatId] - Telegram chat ID
+     * @param {String} [meta.userId] - Telegram user ID
+     * @param {String} [meta.input] - User input that triggered error
+     * @param {String} [meta.action] - Callback action or command
+     * @protected
+     */
+    logError(context, error, meta = {}) {
+        const enriched = {
+            handler: this.constructor.name,
+            chatId: meta.chatId || 'unknown',
+            userId: meta.userId || meta.chatId || 'unknown',
+            ...(meta.input && { input: meta.input }),
+            ...(meta.action && { action: meta.action }),
+            error: error.message,
+            stack: error.stack
+        };
+        // Remove internal fields from spread
+        const { chatId, userId, input, action, ...extra } = meta;
+        Object.assign(enriched, extra);
+
+        logger.error(`[${this.constructor.name}] ${context} | ChatId: ${enriched.chatId} | Error: ${error.message}`, enriched);
+    }
+
+    /**
+     * Generate short error tracking ID for user reference
+     * Format: ERR-XXXXXX (6 chars alphanumeric)
+     * @returns {string} Error tracking ID
+     * @private
+     */
+    _generateErrorId() {
+        return 'ERR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+
+    /**
      * Log and send error to user
-     * Combines error logging with user notification
+     * Combines structured error logging with user notification
      * @param {String} context - Log context (e.g., method name)
      * @param {Error} error - Error object
      * @param {String} chatId - Chat identifier
-     * @param {String} userMessage - User-facing error message
+     * @param {String} [userMessage=null] - User-facing error message
+     * @param {Object} [meta={}] - Additional metadata for logging
      */
-    async logAndSendError(context, error, chatId, userMessage = null) {
-        logger.error(`[${this.constructor.name}] ${context}:`, {
-            error: error.message,
-            stack: error.stack,
-            chatId
-        });
+    async logAndSendError(context, error, chatId, userMessage = null, meta = {}) {
+        this.logError(context, error, { chatId, ...meta });
 
         const message = userMessage || this.messages.ERR_GENERIC || 'Terjadi kesalahan. Silakan coba lagi.';
         await this.sendError(chatId, message);
+    }
+
+    /**
+     * Centralized error handler with tracking ID (SAFE - no info leak)
+     * Logs full error internally, shows only generic message + tracking ID to user.
+     * Use this instead of ERROR(error.message) to prevent exposing internals.
+     * 
+     * @param {String} context - Action context (e.g., 'Pay Error', 'Route Error')
+     * @param {Error} error - Error object
+     * @param {String} chatId - Chat identifier
+     * @param {Object} [meta={}] - Additional metadata for logging
+     * @returns {Promise<void>}
+     */
+    async handleError(context, error, chatId, meta = {}) {
+        const errorId = this._generateErrorId();
+
+        // Log full details (internal only)
+        this.logError(context, error, { chatId, errorId, ...meta });
+
+        // Show SAFE message to user (no raw error.message)
+        const safeMessage = this.messages.ERROR
+            ? this.messages.ERROR(`Terjadi gangguan sistem. Kode: ${errorId}`)
+            : `⚠️ Terjadi kesalahan. Kode: ${errorId}\n\nSilakan coba lagi atau hubungi Admin.`;
+
+        await this.sendError(chatId, safeMessage);
     }
 
     /**

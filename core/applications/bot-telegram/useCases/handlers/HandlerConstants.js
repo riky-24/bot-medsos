@@ -29,7 +29,7 @@ export const PAGINATION = {
     /**
      * Maximum page number allowed (prevent overflow)
      */
-    MAX_PAGE: 1000,
+    MAX_PAGE: 20,
 
     /**
      * Default page when not specified
@@ -85,6 +85,16 @@ export const LIMITS = {
      * Maximum retries for API calls
      */
     MAX_API_RETRIES: 3
+};
+
+/**
+ * Application-level cooldowns (in milliseconds)
+ * Note: Primary rate limiting is handled by nginx.
+ * These are for preventing UI spam (rapid button clicks).
+ */
+export const COOLDOWNS = {
+    /** Cooldown for expensive operations like history fetch, status check */
+    ACTION_COOLDOWN_MS: 2000, // 2 seconds
 };
 
 /**

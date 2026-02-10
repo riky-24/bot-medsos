@@ -58,6 +58,21 @@ AppConfig.validate();
  * This file acts as the Composition Root.
  * It manually instantiates all classes (Pure DI) and wires them together.
  */
+
+// Global Error Handlers (Best Practice: Catch startup/runtime errors)
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    // In production, you might want to exit here, but for a bot, logging is crucial.
+});
+
+process.on('uncaughtException', (error) => {
+    logger.error('🔥 Uncaught Exception:', error);
+    // Critical error, must crash to restart cleanly via pm2/docker
+    logger.on('finish', () => process.exit(1));
+    // Failsafe exit if logger doesn't finish
+    setTimeout(() => process.exit(1), 1000).unref();
+});
+
 async function bootstrap() {
     try {
         logger.info('🚀 Starting Bot Medsos Application...');

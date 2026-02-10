@@ -5,7 +5,9 @@
  * and adapters.
  */
 import logger from './Logger.js';
+
 import { TransactionSyncService } from './TransactionSyncService.js';
+import { TIMEOUTS } from '../../applications/bot-telegram/useCases/handlers/HandlerConstants.js';
 
 export class PaymentService {
   /**
@@ -22,6 +24,16 @@ export class PaymentService {
 
     // Sub-service for status synchronization
     this.syncService = new TransactionSyncService(paymentPort, transactionRepository);
+  }
+
+  /**
+   * Helper to wrap promise with timeout
+   */
+  async _withTimeout(promise, context) {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`API Timeout: ${context}`)), TIMEOUTS.API_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeoutPromise]);
   }
 
   /**
@@ -181,36 +193,49 @@ export class PaymentService {
     const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
     const merchantRef = `ORDER-${sanitizedUserId}-${Date.now()}-${randomSuffix}`;
 
-    const result = await this.paymentPort.createInvoice({ ...orderData, merchantRef });
+    try {
+      // Wrap with timeout
+      const result = await this._withTimeout(
+        this.paymentPort.createInvoice({ ...orderData, merchantRef }),
+        `Create Invoice ${merchantRef}`
+      );
 
-    if (result.success && this.trxRepo) {
-      try {
-        await this.trxRepo.save({
-          merchantRef,
-          trxId: result.trx_id || null,
-          userId: orderData.userId.toString(),
-          customerName: orderData.playerId || orderData.customerName || 'Unknown',
-          game: orderData.game,
-          item: orderData.item,
-          nickname: orderData.nickname || null,
-          playerId: orderData.playerId ? String(orderData.playerId) : null,
-          zoneId: orderData.zoneId ? String(orderData.zoneId) : null,
-          gameCode: orderData.game, // Internal/Provider game code
-          serviceCode: orderData.code, // Provider service ID
-          amount: orderData.amount,
-          channel: orderData.channelCode || 'QRIS',
-          status: 'UNPAID',
-          paymentUrl: result.payment_url,
-          paymentNo: result.payment_code ? String(result.payment_code) : null,
-          qrString: result.qr_string,
-          expiryDate: result.expiry_date ? new Date(result.expiry_date) : null
-        });
-      } catch (e) {
-        logger.error('[PaymentService] Save failed:', e);
+      if (result.success && this.trxRepo) {
+        try {
+          await this.trxRepo.save({
+            merchantRef,
+            trxId: result.trx_id || null,
+            userId: orderData.userId.toString(),
+            customerName: orderData.playerId || orderData.customerName || 'Unknown',
+            game: orderData.game,
+            item: orderData.item,
+            nickname: orderData.nickname || null,
+            playerId: orderData.playerId ? String(orderData.playerId) : null,
+            zoneId: orderData.zoneId ? String(orderData.zoneId) : null,
+            gameCode: orderData.game, // Internal/Provider game code
+            serviceCode: orderData.code, // Provider service ID
+            amount: orderData.amount,
+            channel: orderData.channelCode || 'QRIS',
+            status: 'UNPAID',
+            paymentUrl: result.payment_url,
+            paymentNo: result.payment_code ? String(result.payment_code) : null,
+            qrString: result.qr_string,
+            expiryDate: result.expiry_date ? new Date(result.expiry_date) : null
+          });
+        } catch (e) {
+          logger.error('[PaymentService] Save failed:', e);
+        }
       }
-    }
 
-    return { ...result, merchantRef, status: 'UNPAID' };
+      return { ...result, merchantRef, status: 'UNPAID' };
+    } catch (error) {
+      logger.error(`[PaymentService] Create invoice failed: ${error.message}`);
+      return {
+        success: false,
+        message: 'Payment gateway error',
+        error: error.message
+      };
+    }
   }
 
   /**

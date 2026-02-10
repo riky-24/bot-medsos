@@ -43,6 +43,11 @@ export class GuideRouter extends BaseHandler {
 
     // Additional dependencies specific to GuideRouter
     this.paymentService = deps.paymentService;
+
+    // Validate critical dependencies
+    this.validateDependencies({
+      paymentService: this.paymentService
+    });
   }
 
   /**
@@ -87,7 +92,7 @@ export class GuideRouter extends BaseHandler {
             const calc = await this.paymentService.calculateFinalAmount(session.price, channelCode);
             caption += this.messages.GUIDE_TOTAL_LABEL(calc.finalAmount);
           } catch (e) {
-            logger.error('[GuideRouter] Fee calculation error:', e);
+            this.logError('Fee Calculation Error', e, { chatId, action: `guide_${channelCode}` });
           }
         }
       }
@@ -141,7 +146,7 @@ export class GuideRouter extends BaseHandler {
       await this.ui.sendOrEdit(chatId, caption, options);
 
     } catch (error) {
-      logger.error('[GuideRouter] Error:', error);
+      this.logError('Guide Display Error', error, { chatId, action: `guide_${channelCode}` });
       await this.ui.sendOrEdit(chatId, this.messages.ERROR(this.messages.ERR_GUIDE_FAILED));
     }
   }

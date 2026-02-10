@@ -42,6 +42,7 @@ import { MENUS } from '../../config/menus.js';
 import { PRICING, QR_CODE } from '../../../../shared/config/constants.js';
 import logger from '../../../../shared/services/Logger.js';
 import { TIMEOUTS } from './HandlerConstants.js';
+import { Sanitizer } from '../../../../shared/utils/Sanitizer.js';
 
 export class PaymentHandler {
   /**
@@ -55,6 +56,10 @@ export class PaymentHandler {
    * @param {Object} [ui=null] - Pre-initialized UI helper
    */
   constructor(paymentService, sendPort, sessionService = null, config = null, gameService = null, ui = null) {
+    // Validate critical dependencies
+    if (!paymentService) throw new Error("Required dependency 'paymentService' not provided to PaymentHandler");
+    if (!sendPort) throw new Error("Required dependency 'sendPort' not provided to PaymentHandler");
+
     this.paymentService = paymentService;
     this.sendPort = sendPort;
     this.sessionService = sessionService;
@@ -83,6 +88,9 @@ export class PaymentHandler {
     const gameInfo = games.find(g => g.code === game) || {};
     const isVerified = !!gameInfo.validationCode;
 
+    // Escape nickname to prevent markdown breakage
+    const safeNickname = Sanitizer.escapeMarkdown(orderData.nickname || '');
+
     const invoiceMsg = orderData.channelCode
       ? this.messages.PAYMENT_FEE_BREAKDOWN(
         item,
@@ -91,10 +99,10 @@ export class PaymentHandler {
         orderData.feeType || 'Biaya Layanan',
         orderData.feeAmount || 0,
         orderData.amount || price,
-        orderData.nickname,
+        safeNickname,
         isVerified
       )
-      : this.messages.ORDER_INVOICE(gameInfo.name || game, displayId, zoneId, item, price, orderData.nickname, isVerified);
+      : this.messages.ORDER_INVOICE(gameInfo.name || game, displayId, zoneId, item, price, safeNickname, isVerified);
 
     const keyboard = orderData.channelCode ? MENUS.ORDER_PROCESS : MENUS.ORDER_CONFIRMATION;
 
@@ -112,7 +120,7 @@ export class PaymentHandler {
    */
   async processPayment(chatId, orderData = null, options = {}) {
     if (!this.paymentService) {
-      logger.error('[PaymentHandler] PaymentService not initialized');
+      logger.error(`[PaymentHandler] PaymentService not initialized | ChatId: ${chatId}`);
       await this.ui.sendOrEdit(chatId, this.messages.PAYMENT_ERROR);
       return;
     }
@@ -127,22 +135,62 @@ export class PaymentHandler {
     await this.ui.sendOrEdit(chatId, this.messages.PAYMENT_PROCESSING);
 
     try {
+      // SECURITY: Validate Amount against Database
+      // Prevent manipulation of session data or stale prices
+      if (this.gameService) {
+        const serviceInfo = await this.gameService.findServiceByCode(order.item);
+        if (!serviceInfo) {
+          throw new Error(`Invalid item code: ${order.item}`);
+        }
+
+        // Always use fresh price from DB
+        const freshBasePrice = serviceInfo.priceBasic;
+
+        // Recalculate total with fees
+        const calculation = await this.paymentService.calculateFinalAmount(freshBasePrice, order.channelCode);
+
+        // Audit log if price changed (stale session vs fresh DB)
+        if (BigInt(order.amount) !== BigInt(calculation.finalAmount)) {
+          logger.warn(`[PaymentHandler] Price mismatch/std correction | ChatId: ${chatId} | Item: ${order.item} | Session: ${order.amount} | Fresh: ${calculation.finalAmount}`);
+        }
+
+        // FORCE OVERRIDE session data with fresh calculated values
+        order.amount = calculation.finalAmount; // Total matches DB + Fee
+        order.basePrice = calculation.baseAmount;
+        order.feeAmount = calculation.feeAmount;
+      }
+
       const result = await this.paymentService.createInvoice(order);
 
       if (result.success) {
         const isQRChannel = this.paymentService.isQRChannel(order.channelCode);
 
-        if (isQRChannel && result.qr_string) {
-          await this.sendQRInvoice(chatId, result, order);
-        } else {
-          await this.sendPaymentDetails(chatId, result, order);
+        try {
+          if (isQRChannel && result.qr_string) {
+            await this.sendQRInvoice(chatId, result, order);
+          } else {
+            await this.sendPaymentDetails(chatId, result, order);
+          }
+        } catch (uiError) {
+          // PARTIAL SUCCESS: Invoice created but UI delivery failed
+          // Log merchantRef for recovery (user can use reprint)
+          logger.error(`[PaymentHandler] UI Delivery Failed (Invoice exists!) | ChatId: ${chatId} | MerchantRef: ${result.merchantRef || 'N/A'} | Error: ${uiError.message}`, {
+            handler: 'PaymentHandler', chatId, merchantRef: result.merchantRef, error: uiError.message, stack: uiError.stack
+          });
+          // Show recovery message with merchantRef if available
+          const recoveryMsg = result.merchantRef
+            ? `⚠️ Pembayaran berhasil dibuat (Ref: ${result.merchantRef}), tapi gagal menampilkan detail. Gunakan menu Riwayat untuk melihat transaksi.`
+            : this.messages.PAYMENT_ERROR;
+          await this.ui.sendOrEdit(chatId, recoveryMsg);
+          return; // Don't re-throw, invoice IS created
         }
       } else {
         await this.ui.sendOrEdit(chatId, this.messages.PAYMENT_ERROR);
       }
     } catch (error) {
-      logger.error(`[PaymentHandler] Payment processing error: ${error.message}`, error);
+      logger.error(`[PaymentHandler] Payment Processing Error | ChatId: ${chatId} | Game: ${order?.game} | Error: ${error.message}`, { handler: 'PaymentHandler', chatId, error: error.message, stack: error.stack });
       await this.ui.sendOrEdit(chatId, this.messages.PAYMENT_ERROR);
+      throw error; // Re-throw so caller (ActionRouter) preserves session for retry
     }
   }
 
@@ -181,7 +229,7 @@ export class PaymentHandler {
         if (result.merchantRef) await this.paymentService.updateTransactionMessageId(result.merchantRef, photoResponse.result.message_id);
       }
     } catch (error) {
-      logger.error(`[PaymentHandler] Failed to send photo, fallback to text: ${error.message}`);
+      logger.error(`[PaymentHandler] QR Photo Fallback | ChatId: ${chatId} | Error: ${error.message}`, { handler: 'PaymentHandler', chatId, error: error.message });
       await this.sendPaymentLinkFallback(chatId, result);
     }
   }
@@ -225,7 +273,11 @@ export class PaymentHandler {
     let message = this.messages.PAYMENT_DETAILS_HEADER;
     message += this.messages.PAYMENT_DETAILS_GAME(orderData.game);
     message += this.messages.PAYMENT_DETAILS_ITEM(orderData.item);
-    message += this.messages.PAYMENT_DETAILS_PLAYER(orderData.playerId || orderData.userId, orderData.zoneId, orderData.nickname);
+
+    // Escape nickname for display
+    const safeNickname = Sanitizer.escapeMarkdown(orderData.nickname || '');
+    message += this.messages.PAYMENT_DETAILS_PLAYER(orderData.playerId || orderData.userId, orderData.zoneId, safeNickname);
+
     message += this.messages.PAYMENT_DETAILS_METHOD(orderData.channelName || orderData.channelCode || 'Online Payment');
     message += this.messages.PAYMENT_DETAILS_AMOUNT(orderData.amount);
     message += `━━━━━━━━━━━━━━━━━━━━\n\n`;

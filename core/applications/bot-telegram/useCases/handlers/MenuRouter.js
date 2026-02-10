@@ -56,6 +56,11 @@ export class MenuRouter extends BaseHandler {
     this.menuHandler = deps.menuHandler;
     this.paymentService = deps.paymentService;
     this.menus = config.menus;
+
+    // Validate critical dependencies
+    this.validateDependencies({
+      menuHandler: this.menuHandler
+    });
   }
 
   /**
@@ -232,7 +237,7 @@ export class MenuRouter extends BaseHandler {
       return RouterResponse.toast(this.messages.HISTORY_REFRESH_SUCCESS);
 
     } catch (error) {
-      logger.error('[MenuRouter] History Error:', error);
+      this.logError('History Error', error, { chatId, action: 'menu_history' });
       const errMsg = this.messages.ERROR("Gagal memuat riwayat transaksi.");
       await this.ui.sendOrEdit(chatId, errMsg, {});
     }

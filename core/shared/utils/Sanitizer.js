@@ -28,6 +28,22 @@ export class Sanitizer {
   }
 
   /**
+   * Sanitize merchant reference strings from callback data
+   * Strict whitelist: only alphanumeric + dash allowed
+   * @param {string} ref - Raw merchant reference from callback
+   * @param {number} maxLength - Maximum allowed length
+   * @returns {string|null} Sanitized ref or null if invalid
+   */
+  static cleanMerchantRef(ref, maxLength = 64) {
+    if (!ref || typeof ref !== 'string') return null;
+    const trimmed = ref.trim();
+    if (trimmed.length === 0 || trimmed.length > maxLength) return null;
+    // Strict: only alphanumeric and dash
+    if (!/^[a-zA-Z0-9\-]+$/.test(trimmed)) return null;
+    return trimmed;
+  }
+
+  /**
    * Escape special characters for Telegram Markdown (V1)
    * Prevents UI breakage when displaying user input
    * @param {string} text 

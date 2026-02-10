@@ -5,7 +5,11 @@ import { GuideRouter } from './GuideRouter.js';
 import { PaymentChannelHandler } from './PaymentChannelHandler.js';
 import { PERMISSIONS } from '../../security/authz/permissions.js';
 import { RouterResponse } from './RouterResponse.js';
-import { PARSING } from './HandlerConstants.js';
+import { PARSING, COOLDOWNS, PAGINATION } from './HandlerConstants.js';
+
+// Simple in-memory cooldown tracker (per chatId)
+// Note: Primary rate limiting is handled by nginx
+const _cooldownMap = new Map();
 
 /**
  * @file CallbackRouter.js
@@ -73,6 +77,16 @@ export class CallbackRouter {
    * @param {Object} [authPort=null] - Authorization service
    */
   constructor(menuHandler, paymentHandler, gameSelectionHandler, sendPort, sessionService = null, config, ui = null, authPort = null) {
+    // Validate critical dependencies (fail-fast)
+    const required = { menuHandler, sendPort, gameSelectionHandler, config };
+    for (const [name, dep] of Object.entries(required)) {
+      if (!dep) {
+        const msg = `Required dependency '${name}' not provided to CallbackRouter`;
+        logger.error(msg);
+        throw new Error(msg);
+      }
+    }
+
     // Create dependencies object for routers
     const deps = {
       sendPort,
@@ -112,6 +126,20 @@ export class CallbackRouter {
    * @returns {Promise<RouterResponse|void>} Router response or void
    */
   async route(callbackData, chatId, startHandler, messageId = null) {
+    // Validate callback data before parsing
+    if (!callbackData || typeof callbackData !== 'string' || callbackData.trim().length === 0) {
+      logger.warn(`[CallbackRouter] Invalid callback data received | ChatId: ${chatId} | Data: ${String(callbackData)}`);
+      return RouterResponse.toast();
+    }
+
+    // Simple cooldown check (prevent rapid button spam)
+    const now = Date.now();
+    const lastAction = _cooldownMap.get(chatId);
+    if (lastAction && (now - lastAction) < COOLDOWNS.ACTION_COOLDOWN_MS) {
+      return RouterResponse.toast();
+    }
+    _cooldownMap.set(chatId, now);
+
     logger.debug(`[CallbackRouter] Routing: ${callbackData}`);
 
     try {
@@ -199,9 +227,12 @@ export class CallbackRouter {
           await this.ui.sendOrEdit(chatId, this.messages.ERR_ACTION_UNKNOWN);
       }
     } catch (error) {
-      logger.error(`[CallbackRouter] Routing error: ${error.message}`, error);
-      const errorMsg = this.messages.ERROR(error.message);
-      await this.ui.sendOrEdit(chatId, errorMsg);
+      const errorId = 'ERR-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      logger.error(`[CallbackRouter] Routing Error | ChatId: ${chatId} | ErrorId: ${errorId} | Error: ${error.message}`, {
+        handler: 'CallbackRouter', chatId, errorId, action: callbackData, error: error.message, stack: error.stack
+      });
+      const safeMsg = this.messages.ERROR(`Terjadi gangguan sistem. Kode: ${errorId}`);
+      await this.ui.sendOrEdit(chatId, safeMsg);
     }
   }
 
@@ -227,12 +258,14 @@ export class CallbackRouter {
       const gameCode = parts[0];
       const page = parseInt(parts[2], PARSING.DECIMAL_RADIX);
 
-      if (isNaN(page)) {
-        logger.error(`[CallbackRouter] Invalid page number: ${parts[2]}`);
+      if (isNaN(page) || page < 1) {
+        logger.error(`[CallbackRouter] Invalid Page Number | ChatId: ${chatId} | Page: ${parts[2]}`, { handler: 'CallbackRouter', chatId, action });
         return;
       }
 
-      await this.gameSelectionHandler.handleGamePagination(chatId, gameCode, page, messageId);
+      // Clamp to max page limit
+      const clampedPage = Math.min(page, PAGINATION.MAX_PAGE);
+      await this.gameSelectionHandler.handleGamePagination(chatId, gameCode, clampedPage, messageId);
     }
     // Case 2: Selection "CODE"
     else {

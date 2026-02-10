@@ -54,6 +54,8 @@ import logger from '../../../../shared/services/Logger.js';
 
 import { Sanitizer } from '../../../../shared/utils/Sanitizer.js';
 import { PERMISSIONS } from '../../security/authz/permissions.js';
+import { GAME_VALIDATION_SCHEMAS } from '../../../../shared/config/GameValidationSchema.js';
+import { GAME_NORMALIZATION_RULES } from '../../../../shared/config/gameNormalization.js';
 export class SessionInputHandler {
     /**
      * Constructor for SessionInputHandler
@@ -69,6 +71,12 @@ export class SessionInputHandler {
      * @param {Object} [authPort=null] - Authorization service
      */
     constructor(sessionService, sendPort, config, gameProviderService, gameService = null, inputValidationService = null, nicknameRateLimiter = null, ui = null, authPort = null) {
+        // Validate critical dependencies
+        const required = { sessionService, sendPort, gameProviderService };
+        for (const [name, dep] of Object.entries(required)) {
+            if (!dep) throw new Error(`Required dependency '${name}' not provided to SessionInputHandler`);
+        }
+
         this.sessionService = sessionService;
         this.sendPort = sendPort;
         this.messages = config?.messages;
@@ -132,14 +140,32 @@ export class SessionInputHandler {
         // 3. Data Intent (Potential Player ID)
         if (result.type !== 'data') return false;
 
+        // --- SECURITY: Input Sanitization ---
+        // Clean input to remove dangerous characters or formatting
+        const cleanText = Sanitizer.cleanAlphanumeric(message.text);
+
+        if (!cleanText) {
+            logger.warn(`[SessionInput] ⚠️ SANITIZATION FAILED | ChatId: ${message.chatId} | Input: "${message.text}"`);
+            const invalidMsg = this.messages.ERR_INVALID_FORMAT || "⚠️ Format tidak valid. Gunakan huruf dan angka saja.";
+            await this.ui.sendOrEdit(message.chatId, invalidMsg);
+
+            // Delete dangerous input
+            await this.ui.deleteSilently(message.chatId, message.messageId);
+            return true;
+        }
+
+        // Use sanitized text for validation re-check (optional but safer)
+        // Note: inputValidationService already parsed it, but we strictly enforce clean inputs now
+
         // --- NEW: Local Schema Validation ---
         if (result.validation && !result.validation.isValid) {
             // Comprehensive logging untuk debugging
-            const { GAME_VALIDATION_SCHEMAS } = await import('../../../../shared/config/GameValidationSchema.js');
             const schema = GAME_VALIDATION_SCHEMAS[pending.game];
-            logger.warn(`[SessionInput] ❌ LOCAL SCHEMA FAILED | ChatId: ${message.chatId} | Game: ${pending.game} | Input: "${message.text}" | Pattern: ${schema?.pattern || 'N/A'} | Expected: ${schema?.example || 'N/A'} | Error: ${result.validation.error}`);
+            logger.warn(`[SessionInput] ❌ LOCAL SCHEMA FAILED | ChatId: ${message.chatId} | Game: ${pending.game} | Input: "${cleanText}" | Pattern: ${schema?.pattern || 'N/A'} | Expected: ${schema?.example || 'N/A'} | Error: ${result.validation.error}`);
 
-            const schemaError = `⚠️ **FORMAT ID SALAH**\n\n${result.validation.error}`;
+            // Escape formatted error to prevent markdown breakage
+            const safeError = Sanitizer.escapeMarkdown(result.validation.error);
+            const schemaError = `⚠️ **FORMAT ID SALAH**\n\n${safeError}`;
             const errorKeyboard = {
                 inline_keyboard: [
                     [{ text: "❌ Batalkan", callback_data: "action_cancel" }]
@@ -181,7 +207,6 @@ export class SessionInputHandler {
 
                 // 2. [FALLBACK] If DB doesn't have it, try normalization rules (Matches mapping in code)
                 if (!validationCode) {
-                    const { GAME_NORMALIZATION_RULES } = await import('../../../../shared/config/gameNormalization.js');
                     const rule = GAME_NORMALIZATION_RULES.find(r => r.targetCode === pending.game || r.providerCode === pending.game);
                     validationCode = rule?.validationCode || null;
                 }
@@ -222,7 +247,7 @@ export class SessionInputHandler {
                             logger.warn(`[SessionInput] ❌ API VALIDATION FAILED | ChatId: ${message.chatId} | Game: ${pending.game} | ValidationCode: ${validationCode} | PlayerId: ${userId} | ZoneId: ${zoneId || 'null'} | ErrorType: ${errorType} | APIMessage: ${playerInfo.message || 'N/A'}`);
 
                             const errorMsg = isSystemError
-                                ? "⚠️ **GANGGUAN SYSTEM**\n\nMaaf Kak, fitur cek ID sedang gangguan di sistem provider. Silakan coba lagi nanti atau pastikan ID sudah benar."
+                                ? (this.messages.ERR_SYSTEM_MAINTENANCE || "⚠️ **GANGGUAN SYSTEM**\n\nMaaf Kak, fitur cek ID sedang gangguan di sistem provider.")
                                 : this.messages.ERR_ID_NOT_FOUND(userId, zoneId);
                             const idErrorKeyboard = {
                                 inline_keyboard: [
@@ -250,13 +275,15 @@ export class SessionInputHandler {
         // Update Session with new field names
         await this.sessionService.savePendingOrder(message.chatId, {
             ...pending,
-            gamePlayerId: userId,  // NEW field name for game player ID
+            gamePlayerId: userId, // Use validated IDs
             zoneId: zoneId || null,
             nickname: nickname
         });
 
         // Reply with Confirmation Buttons
-        const confirmationMsg = this.messages.CONFIRM_PLAYER_ID(userId, zoneId, nickname);
+        // Escape nickname to prevent markdown injection
+        const safeNickname = nickname ? Sanitizer.escapeMarkdown(nickname) : null;
+        const confirmationMsg = this.messages.CONFIRM_PLAYER_ID(userId, zoneId, safeNickname);
         const keyboard = {
             inline_keyboard: [
                 [{ text: this.messages.BUTTON_CONFIRM_YES, callback_data: "action_confirm_id" }],

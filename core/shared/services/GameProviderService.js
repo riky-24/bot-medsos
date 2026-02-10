@@ -7,6 +7,7 @@
  * Dependencies are injected via constructor (Dependency Injection).
  */
 import logger from './Logger.js';
+import { TIMEOUTS } from '../../applications/bot-telegram/useCases/handlers/HandlerConstants.js';
 
 export class GameProviderService {
   /**
@@ -14,6 +15,16 @@ export class GameProviderService {
    */
   constructor(gameProviderPort) {
     this.providerPort = gameProviderPort;
+  }
+
+  /**
+   * Helper to wrap promise with timeout
+   */
+  async _withTimeout(promise, context) {
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`API Timeout: ${context}`)), TIMEOUTS.API_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeoutPromise]);
   }
 
   /**
@@ -38,9 +49,13 @@ export class GameProviderService {
     };
 
     logger.info('[GameProviderService] Creating order:', cleanData);
-    
+
     try {
-      const result = await this.providerPort.orderTopUp(cleanData);
+      // Wrap with timeout
+      const result = await this._withTimeout(
+        this.providerPort.orderTopUp(cleanData),
+        `Create Order ${cleanData.gameCode}`
+      );
       return result;
     } catch (error) {
       logger.error('[GameProviderService] Order error:', error);
@@ -58,9 +73,12 @@ export class GameProviderService {
   async getAvailablePackages(gameCode) {
     const cleanGameCode = this._sanitizeInput(gameCode);
     logger.info(`[GameProviderService] Fetching packages for: ${cleanGameCode}`);
-    
+
     try {
-      const packages = await this.providerPort.getGameServices(cleanGameCode);
+      const packages = await this._withTimeout(
+        this.providerPort.getGameServices(cleanGameCode),
+        `Get Packages ${cleanGameCode}`
+      );
       return packages;
     } catch (error) {
       logger.error('[GameProviderService] Fetch packages error:', error);
@@ -73,9 +91,12 @@ export class GameProviderService {
    */
   async checkOrderStatus(orderId) {
     logger.info(`[GameProviderService] Checking status for: ${orderId}`);
-    
+
     try {
-      const status = await this.providerPort.checkOrderStatus(orderId);
+      const status = await this._withTimeout(
+        this.providerPort.checkOrderStatus(orderId),
+        `Check Status ${orderId}`
+      );
       return status;
     } catch (error) {
       logger.error('[GameProviderService] Status check error:', error);
@@ -94,14 +115,17 @@ export class GameProviderService {
     const cleanPlayerId = this._sanitizeInput(playerId);
     const cleanZoneId = zoneId ? this._sanitizeInput(zoneId) : null;
 
-    logger.info('[GameProviderService] Validating player:', { 
-      gameCode: cleanGameCode, 
-      playerId: cleanPlayerId, 
-      zoneId: cleanZoneId 
+    logger.info('[GameProviderService] Validating player:', {
+      gameCode: cleanGameCode,
+      playerId: cleanPlayerId,
+      zoneId: cleanZoneId
     });
-    
+
     try {
-      const playerInfo = await this.providerPort.getPlayerInfo(cleanGameCode, cleanPlayerId, cleanZoneId);
+      const playerInfo = await this._withTimeout(
+        this.providerPort.getPlayerInfo(cleanGameCode, cleanPlayerId, cleanZoneId),
+        `Validate Player ${cleanGameCode}`
+      );
       return playerInfo;
     } catch (error) {
       logger.error('[GameProviderService] Player validation error:', error);

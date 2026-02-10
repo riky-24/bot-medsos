@@ -49,6 +49,11 @@ export class PaymentChannelHandler extends BaseHandler {
 
     // Additional dependencies specific to PaymentChannelHandler
     this.paymentService = deps.paymentService;
+
+    // Validate critical dependencies
+    this.validateDependencies({
+      paymentService: this.paymentService
+    });
   }
 
   /**
@@ -104,7 +109,7 @@ export class PaymentChannelHandler extends BaseHandler {
         ]);
       }
     } catch (error) {
-      logger.error(`[PaymentChannelHandler] Error fetching channels: ${error.message}`);
+      this.logError('Fetch Channels Error', error, { chatId, action: `channels_${mode}` });
       // Fallback: Show simple message to user
       const errorMessage = this.messages.ERR_CHANNEL_LOAD_FAILED;
 

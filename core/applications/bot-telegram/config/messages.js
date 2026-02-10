@@ -267,6 +267,7 @@ export const MESSAGES = {
   ERR_GUIDE_FAILED: `❌ Gagal menampilkan panduan`,
   ERR_NO_SESSION_REDIRECT: `⚠️ PILIH GAME DULU YA KAK\n\nWah, sepertinya Kakak langsung memasukkan ID tanpa memilih game. Silakan tentukan game yang ingin di-topup dulu ya! 😊`,
   ERR_NICKNAME_LIMIT: `⌛ SABAR YA KAK...\n\nKakak terlalu cepat mencoba cek ID. Tunggu sekitar 1 menit lagi ya agar sistem tetap lancar. 🙏`,
+  ERR_SYSTEM_MAINTENANCE: `⚠️ **GANGGUAN SYSTEM**\n\nMaaf Kak, fitur cek ID sedang gangguan di sistem provider. Silakan coba lagi nanti atau pastikan ID sudah benar.`,
 
   // Unrecognized Input Fallback
   UNKNOWN_INPUT: `Maaf Kak, Anggun tidak mengerti pesan tersebut. Silakan pilih menu di bawah ya: 😊`,

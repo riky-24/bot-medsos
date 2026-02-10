@@ -2,6 +2,8 @@
  * @file ActionRouter.js
  * @description Handles action-related callbacks for payment processing, confirmations, and transaction management
  * @responsibility Process user actions like "Pay Now", order confirmations, transaction checks, and invoice reprints
+ *
+ * @security Merchant refs from callbacks are sanitized via Sanitizer.cleanMerchantRef()
  * 
  * @requires SendPort - Telegram bot messaging interface
  * @requires PaymentService - Payment processing and fee calculation
@@ -44,7 +46,9 @@
 import logger from '../../../../shared/services/Logger.js';
 import { PERMISSIONS } from '../../security/authz/permissions.js';
 import { BaseHandler } from './BaseHandler.js';
+import { Sanitizer } from '../../../../shared/utils/Sanitizer.js';
 import { RouterResponse } from './RouterResponse.js';
+import { sessionLock, SessionLock } from './SessionLock.js';
 
 export class ActionRouter extends BaseHandler {
   /**
@@ -66,7 +70,14 @@ export class ActionRouter extends BaseHandler {
     this.paymentService = deps.paymentService;
     this.paymentHandler = deps.paymentHandler;
     this.menuHandler = deps.menuHandler;
-    this.authPort = deps.authPort; // Security Port
+    this.authPort = deps.authPort; // Security Port (optional)
+
+    // Validate critical dependencies
+    this.validateDependencies({
+      paymentService: this.paymentService,
+      paymentHandler: this.paymentHandler,
+      menuHandler: this.menuHandler
+    });
   }
 
   /**
@@ -86,24 +97,52 @@ export class ActionRouter extends BaseHandler {
    * await route('check_trx_REF123', '12345', null);
    */
   async route(action, chatId, messageId = null) {
+    // Validate action before processing
+    if (!action || typeof action !== 'string' || action.trim().length === 0) {
+      logger.warn(`[ActionRouter] Invalid action received | ChatId: ${chatId} | Action: ${String(action)}`);
+      return;
+    }
+
     // Extract channel code from action (e.g., 'pay_QRIS' -> 'QRIS')
     if (action.startsWith('pay_')) {
       const channelCode = action.replace('pay_', '');
-      return await this.handlePayNow(chatId, channelCode, messageId);
+      // LOCK: Prevent concurrent pay operations for same user
+      const result = await sessionLock.withLock(chatId, async () => {
+        return await this.handlePayNow(chatId, channelCode, messageId);
+      });
+      if (result === SessionLock.LOCKED) {
+        return RouterResponse.toast('⏳ Sedang diproses, mohon tunggu...');
+      }
+      return result;
     }
 
     if (action.startsWith('check_trx_')) {
-      const ref = action.replace('check_trx_', '');
+      const rawRef = action.replace('check_trx_', '');
+      const ref = Sanitizer.cleanMerchantRef(rawRef);
+      if (!ref) {
+        this.logError('Invalid Merchant Ref', new Error('Sanitization failed'), { chatId, rawRef });
+        return RouterResponse.toast();
+      }
       return await this.handleCheckTransaction(chatId, ref, true, messageId); // Try to edit existing invoice
     }
 
     if (action.startsWith('refresh_status_')) {
-      const ref = action.replace('refresh_status_', '');
+      const rawRef = action.replace('refresh_status_', '');
+      const ref = Sanitizer.cleanMerchantRef(rawRef);
+      if (!ref) {
+        this.logError('Invalid Merchant Ref', new Error('Sanitization failed'), { chatId, rawRef });
+        return RouterResponse.toast();
+      }
       return await this.handleCheckTransaction(chatId, ref, true, messageId); // true = edit existing
     }
 
     if (action.startsWith('reprint_')) {
-      const ref = action.replace('reprint_', '');
+      const rawRef = action.replace('reprint_', '');
+      const ref = Sanitizer.cleanMerchantRef(rawRef);
+      if (!ref) {
+        this.logError('Invalid Merchant Ref', new Error('Sanitization failed'), { chatId, rawRef });
+        return RouterResponse.toast();
+      }
       return await this.handleReprint(chatId, ref, true, messageId); // isEdit=true enables refresh behavior
     }
 
@@ -123,8 +162,16 @@ export class ActionRouter extends BaseHandler {
         return await this.handleConfirmId(chatId, messageId);
 
       case 'process_payment':
-      case 'confirm': // Legacy/Alias
-        return await this.handleProcessPayment(chatId, messageId);
+      case 'confirm': { // Legacy/Alias
+        // LOCK: Prevent double payment (critical section)
+        const result = await sessionLock.withLock(chatId, async () => {
+          return await this.handleProcessPayment(chatId, messageId);
+        });
+        if (result === SessionLock.LOCKED) {
+          return RouterResponse.toast('⏳ Pembayaran sedang diproses, mohon tunggu...');
+        }
+        return result;
+      }
 
       default:
         logger.warn(`[ActionRouter] Unknown action: ${action}`);
@@ -162,7 +209,7 @@ export class ActionRouter extends BaseHandler {
       return RouterResponse.toast("Invoice dicetak ulang.");
 
     } catch (error) {
-      logger.error(`[ActionRouter] Reprint Error: ${error.message}`, error);
+      this.logError('Reprint Error', error, { chatId, action: `reprint_${ref}` });
       const errMsg = error.message === 'Transaction not found' ? this.messages.ERR_TRX_NOT_FOUND : this.messages.ERR_REPRINT_FAILED;
       await this.sendOrEdit(chatId, null, errMsg);
     }
@@ -229,8 +276,7 @@ export class ActionRouter extends BaseHandler {
       await this.paymentHandler.handleOrderReview(chatId, invoiceData, { messageId });
 
     } catch (error) {
-      logger.error(`[ActionRouter] Pay error: ${error.message}`, error);
-      await this.sendOrEdit(chatId, null, this.messages.ERROR(error.message));
+      await this.handleError('Pay Error', error, chatId, { action: `pay_${channelCode}` });
     }
   }
 
@@ -283,7 +329,7 @@ export class ActionRouter extends BaseHandler {
       return RouterResponse.toast("ID Terkonfirmasi!");
 
     } catch (error) {
-      logger.error(`[ActionRouter] Confirm ID Error: ${error.message}`, error);
+      this.logError('Confirm ID Error', error, { chatId, action: 'confirm_id' });
       await this.sendOrEdit(chatId, null, this.messages.ERR_PAYMENT_FAILED);
     }
   }
@@ -314,9 +360,10 @@ export class ActionRouter extends BaseHandler {
       };
 
       // Pass messageId into options
-      await this.paymentHandler.processPayment(chatId, orderData, { messageId });
+      const paymentResult = await this.paymentHandler.processPayment(chatId, orderData, { messageId });
 
-      // Clear session after successful processing initiation
+      // Only clear session if payment was fully processed (invoice created + UI sent)
+      // If processPayment throws, session is preserved for retry
       await this.sessionService.clearSession(chatId);
 
       this.logSuccess('Payment Initiated', {
@@ -328,7 +375,8 @@ export class ActionRouter extends BaseHandler {
       return RouterResponse.toast("Memproses pembayaran...");
 
     } catch (error) {
-      logger.error(`[ActionRouter] Process Error: ${error.message}`, error);
+      // ROLLBACK: Session is preserved (not cleared) so user can retry
+      this.logError('Process Payment Error', error, { chatId, action: 'process_payment' });
       await this.sendOrEdit(chatId, null, this.messages.ERR_PAYMENT_FAILED);
     }
   }
@@ -363,7 +411,7 @@ export class ActionRouter extends BaseHandler {
       await this.paymentHandler.sendTransactionStatus(chatId, statusData, {});
 
     } catch (e) {
-      logger.error(`[ActionRouter] Check Trx Error: ${e.message}`, e);
+      this.logError('Check Trx Error', e, { chatId, action: `check_trx_${ref}` });
       await this.sendOrEdit(chatId, this.messages.ERR_CHECK_FAILED);
     }
   }

@@ -37,6 +37,7 @@ import { PAGINATION } from './HandlerConstants.js';
 
 // Pagination Configuration
 const ITEMS_PER_PAGE = PAGINATION.ITEMS_PER_PAGE;
+const MAX_PAGE = PAGINATION.MAX_PAGE || 20;
 
 export class GameSelectionHandler {
   /**
@@ -49,6 +50,10 @@ export class GameSelectionHandler {
    * @param {Object} [ui=null] - Pre-initialized UI helper
    */
   constructor(gameService, sendPort, sessionService = null, config = null, ui = null) {
+    // Validate critical dependencies
+    if (!gameService) throw new Error("Required dependency 'gameService' not provided to GameSelectionHandler");
+    if (!sendPort) throw new Error("Required dependency 'sendPort' not provided to GameSelectionHandler");
+
     this.gameService = gameService;
     this.sendPort = sendPort;
     this.sessionService = sessionService;
@@ -103,10 +108,17 @@ export class GameSelectionHandler {
       // Sort by price
       services.sort((a, b) => (a.priceBasic < b.priceBasic ? -1 : a.priceBasic > b.priceBasic ? 1 : 0));
 
+      // Edge case: no products available
+      if (services.length === 0) {
+        await this.ui.sendOrEdit(chatId, this.messages.ERR_OUT_OF_STOCK || '⚠️ Belum ada produk untuk game ini.');
+        return;
+      }
+
       const totalPages = Math.ceil(services.length / ITEMS_PER_PAGE);
+      const effectiveMaxPage = Math.min(totalPages, MAX_PAGE);
 
       if (page < 1) page = 1;
-      if (page > totalPages) page = totalPages;
+      if (page > effectiveMaxPage) page = effectiveMaxPage;
 
       const startIndex = (page - 1) * ITEMS_PER_PAGE;
       const paginatedItems = services.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -143,8 +155,8 @@ export class GameSelectionHandler {
       await this.ui.sendOrEdit(chatId, message, { reply_markup: keyboard });
 
     } catch (error) {
-      logger.error(`[GameSelectionHandler] Error displaying products: ${error.message}`);
-      await this.ui.sendOrEdit(chatId, this.messages.ERR_GAME_LIST_FAILED(error.message));
+      logger.error(`[GameSelectionHandler] Display Products Error | ChatId: ${chatId} | Game: ${game?.code} | Page: ${page} | Error: ${error.message}`, { handler: 'GameSelectionHandler', chatId, error: error.message, stack: error.stack });
+      await this.ui.sendOrEdit(chatId, this.messages.ERR_GAME_LIST_FAILED('Gagal memuat data produk'));
     }
   }
 
@@ -160,9 +172,12 @@ export class GameSelectionHandler {
   async handleGamePagination(chatId, gameCode, page, messageId) {
     const games = await this.gameService.getAvailableGames();
     const game = games.find(g => g.code === gameCode);
-    if (game) {
-      await this.displayProductList(chatId, game, page, messageId);
+    if (!game) {
+      logger.warn(`[GameSelectionHandler] Game not found for pagination | ChatId: ${chatId} | Code: ${gameCode}`);
+      await this.ui.sendOrEdit(chatId, this.messages.ERR_GAME_LIST_FAILED('Game tidak ditemukan'));
+      return;
     }
+    await this.displayProductList(chatId, game, page, messageId);
   }
 
   /**
