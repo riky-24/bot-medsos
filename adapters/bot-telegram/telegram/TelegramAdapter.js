@@ -2,6 +2,7 @@ import https from "https";
 import { Message } from "../../../core/shared/entities/Message.js";
 import { TelegramPort } from "../../../core/shared/ports/TelegramPort.js";
 import logger from "../../../core/shared/services/Logger.js";
+import { Sanitizer } from "../../../core/shared/utils/Sanitizer.js";
 
 /**
  * TelegramAdapter
@@ -131,8 +132,15 @@ export class TelegramAdapter extends TelegramPort {
   parseUpdate(u) {
     if (u.message && u.message.text) {
       logger.info(`[TelegramAdapter] Received text: ${u.message.text}`);
+
+      // Sanitize User Input Fields (Mitigate CVE-2025-13068)
+      const firstName = Sanitizer.sanitizeHTML(u.message.from.first_name);
+      const lastName = Sanitizer.sanitizeHTML(u.message.from.last_name || '');
+      const username = Sanitizer.sanitizeHTML(u.message.from.username || '');
+
       // Prefer first_name (Profile Name) over username
-      const senderName = u.message.from.first_name || u.message.from.username || 'Kak';
+      const senderName = firstName || username || 'Kak';
+
       return new Message({
         chatId: u.message.chat.id,
         text: u.message.text,
@@ -142,9 +150,9 @@ export class TelegramAdapter extends TelegramPort {
         type: 'text',
         from: {
           id: u.message.from.id,
-          username: u.message.from.username,
-          firstName: u.message.from.first_name,
-          lastName: u.message.from.last_name,
+          username,
+          firstName,
+          lastName,
           languageCode: u.message.from.language_code
         }
       });
@@ -158,7 +166,12 @@ export class TelegramAdapter extends TelegramPort {
         return null;
       }
 
-      const senderName = cb.from.first_name || cb.from.username || 'Kak';
+      // Sanitize User Input Fields
+      const firstName = Sanitizer.sanitizeHTML(cb.from.first_name);
+      const lastName = Sanitizer.sanitizeHTML(cb.from.last_name || '');
+      const username = Sanitizer.sanitizeHTML(cb.from.username || '');
+
+      const senderName = firstName || username || 'Kak';
 
       return new Message({
         chatId: cb.message.chat.id,
@@ -171,9 +184,9 @@ export class TelegramAdapter extends TelegramPort {
         callbackId: cb.id,
         from: {
           id: cb.from.id,
-          username: cb.from.username,
-          firstName: cb.from.first_name,
-          lastName: cb.from.last_name,
+          username,
+          firstName,
+          lastName,
           languageCode: cb.from.language_code
         }
       });

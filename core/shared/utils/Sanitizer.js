@@ -93,4 +93,45 @@ export class Sanitizer {
 
     return false;
   }
+
+  /**
+   * Strip HTML tags from a string to prevent XSS
+   * Mitigation for CVE-2025-13068 (Userbot profile XSS)
+   * @param {string} text 
+   * @returns {string}
+   */
+  static sanitizeHTML(text) {
+    if (!text || typeof text !== 'string') return '';
+
+    let cleaned = text;
+    let previous;
+
+    // Recursive loop to handle nested/double encoded entities (Avoids bypasses)
+    // Limits to 3 iterations to prevent DoS via circular patterns
+    for (let i = 0; i < 3; i++) {
+      previous = cleaned;
+
+      // 1. Decode entities to reveal hidden tags
+      cleaned = cleaned
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&amp;/gi, '&')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#x27;/gi, "'")
+        .replace(/&#x2F;/gi, "/");
+
+      // 2. Strip standard HTML tags
+      cleaned = cleaned.replace(/<[^>]*>?/gm, '');
+
+      // 3. Strip anything that looks like an entity to be paranoid
+      cleaned = cleaned.replace(/&[a-z0-9#]+;/gi, '');
+
+      if (cleaned === previous) break;
+    }
+
+    // Final safety sweep: Remove any lingering brackets
+    cleaned = cleaned.replace(/[<>]/g, '');
+
+    return cleaned.trim();
+  }
 }

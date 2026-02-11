@@ -13,7 +13,8 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "nginx:sync": "sudo cp infrastructure/nginx/config/bot-medsos.conf /etc/nginx/conf.d/bot-medsos.conf && sudo restorecon -v /etc/nginx/conf.d/bot-medsos.conf && sudo nginx -t && sudo systemctl restart nginx"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

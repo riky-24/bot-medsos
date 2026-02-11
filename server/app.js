@@ -31,6 +31,7 @@ import { HealthCheckService } from '../core/shared/health/HealthCheckService.js'
 // Server Imports
 import express from 'express';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
 
 // Config Import
 import { AppConfig } from '../core/shared/config/AppConfig.js';
@@ -223,20 +224,47 @@ async function bootstrap() {
 
         // Telegram Webhook
         app.post('/webhook/telegram', (req, res) => {
-            // Log incoming request
+            // 1. IP Whitelisting (Reference: core.telegram.org/bots/webhooks)
+            // Telegram official ranges: 149.154.160.0/20 and 91.108.4.0/22
+            // Since we use Cloudflare Tunnel, we trust CF-Connecting-IP
+            const clientIp = req.headers['cf-connecting-ip'] || req.ip;
+
+            const isTelegramIp = (ip) => {
+                if (!ip) return false;
+                // Simple check for known subnet prefixes (149.154.* and 91.108.*)
+                // For a more robust production setup, use a CIDR library
+                return ip.startsWith('149.154.') || ip.startsWith('91.108.');
+            };
+
+            // 2. Validate secret token from Telegram with Timing Attack Protection
+            const secretToken = req.headers['x-telegram-bot-api-secret-token'];
+
+            // Compare tokens using constant-time comparison
+            const isValidToken = secretToken && botConfig.webhookSecret &&
+                secretToken.length === botConfig.webhookSecret.length &&
+                crypto.timingSafeEqual(Buffer.from(secretToken), Buffer.from(botConfig.webhookSecret));
+
+            // Log incoming request metadata for audit
             logger.info('📩 Webhook POST received', {
-                ip: req.ip,
-                contentLength: req.headers['content-length']
+                ip: clientIp,
+                contentLength: req.headers['content-length'],
+                isValidToken: !!isValidToken
             });
 
-            // Validate secret token from Telegram
-            const secretToken = req.headers['x-telegram-bot-api-secret-token'];
-            if (secretToken !== botConfig.webhookSecret) {
+            if (!isValidToken) {
                 logger.warn('⛔ Webhook unauthorized: Invalid Secret Token', {
-                    received: secretToken,
-                    expected: botConfig.webhookSecret
+                    received: secretToken ? 'PROVIDED' : 'MISSING',
+                    ip: clientIp
                 });
                 return res.sendStatus(403);
+            }
+
+            // Optional: Strict IP Whitelist (Log warning if IP is not from Telegram)
+            // We log as warning instead of blocking to prevent accidental lockout 
+            // during Cloudflare/Network migrations, as Secret Token is primary auth.
+            if (!isTelegramIp(clientIp)) {
+                logger.warn('⚠️ Webhook received from non-Telegram IP', { ip: clientIp });
+                // If you want to be extremely strict: return res.sendStatus(403);
             }
 
             // Fire and forget processing
