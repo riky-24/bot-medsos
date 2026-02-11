@@ -70,9 +70,10 @@ export class MenuRouter extends BaseHandler {
    * @param {string} action - Menu action (e.g., 'topup', 'history', 'admin')
    * @param {string} chatId - Telegram chat identifier
    * @param {number} [messageId=null] - Message ID for editing
+   * @param {string} [senderName='Kak'] - Sender name for personalization
    * @returns {Promise<RouterResponse>} Router response
    */
-  async route(action, chatId, messageId = null) {
+  async route(action, chatId, messageId = null, senderName = 'Kak') {
     // 1. Handle Categorized Topup Navigation
     if (action.startsWith('topup_cat_')) {
       // Format: topup_cat_verified OR topup_cat_verified_page_2
@@ -153,7 +154,7 @@ export class MenuRouter extends BaseHandler {
         // Session is cleared on: /start, cancel action, or transaction complete
 
         // Standard Welcome / Main Menu
-        await this.ui.sendOrEdit(chatId, this.messages.WELCOME?.() || "Selamat Datang!", { reply_markup: this.menuHandler.getMainMenu() });
+        await this.ui.sendOrEdit(chatId, this.messages.WELCOME?.(senderName) || "Selamat Datang!", { reply_markup: this.menuHandler.getMainMenu() });
         return RouterResponse.handled('main');
     }
   }

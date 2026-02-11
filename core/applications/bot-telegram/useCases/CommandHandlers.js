@@ -68,7 +68,7 @@ export class CommandHandlers {
   /**
    * Handle /start command
    */
-  async handleStart(chatId, args, sender) {
+  async handleStart(chatId, args, sender, message) {
     // SECURITY CHECK
     if (this.bot.authZ && !await this.bot.authZ.can({ id: chatId, chatId }, PERMISSIONS.ACCESS_BOT)) {
       return await sender.sendMessage(chatId, "⛔ Akun Anda diblokir dari sistem.");
@@ -78,9 +78,12 @@ export class CommandHandlers {
     if (this.bot.sessionService) await this.bot.sessionService.clearSession(chatId);
 
     // /start always resets the bubble for a fresh professional look
+    const nameToUse = message?.senderName || 'Kak';
+    const welcomeMsg = this.config.messages.WELCOME(nameToUse);
+
     await sender.sendMessage(
       chatId,
-      this.config.messages.WELCOME(),
+      welcomeMsg,
       {
         reply_markup: this.menuHandler.getMainMenu(),
         forceNew: true
@@ -126,7 +129,8 @@ export class CommandHandlers {
       data,
       chatId,
       this.handleStart.bind(this),
-      message.messageId // New: Pass messageId for editing
+      message.messageId, // New: Pass messageId for editing
+      message.senderName // New: Pass senderName
     );
 
     // Acknowledge callback (stop spinner + optional toast)

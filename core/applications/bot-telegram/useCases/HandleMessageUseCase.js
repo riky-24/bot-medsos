@@ -119,7 +119,7 @@ export class HandleMessageUseCase {
         ...this.sendPort,
         sendMessage: (chatId, text, options) => this.ui.sendOrEdit(chatId, text, options)
       };
-      await this.commands[cmdName](message.chatId, args, wrappedSender);
+      await this.commands[cmdName](message.chatId, args, wrappedSender, message);
       return;
     }
 

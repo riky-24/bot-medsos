@@ -123,9 +123,10 @@ export class CallbackRouter {
    * @param {string} chatId - Telegram chat identifier
    * @param {Function} startHandler - Start command handler (for home navigation)
    * @param {number} [messageId=null] - Message ID for editing
+   * @param {string} [senderName='Kak'] - Sender name for personalization
    * @returns {Promise<RouterResponse|void>} Router response or void
    */
-  async route(callbackData, chatId, startHandler, messageId = null) {
+  async route(callbackData, chatId, startHandler, messageId = null, senderName = 'Kak') {
     // Validate callback data before parsing
     if (!callbackData || typeof callbackData !== 'string' || callbackData.trim().length === 0) {
       logger.warn(`[CallbackRouter] Invalid callback data received | ChatId: ${chatId} | Data: ${String(callbackData)}`);
@@ -164,7 +165,7 @@ export class CallbackRouter {
 
       switch (prefix) {
         case 'menu':
-          const result = await this.menuRouter.route(action, chatId, messageId);
+          const result = await this.menuRouter.route(action, chatId, messageId, senderName);
           // Return the result (containing potential toast)
           if (result && result.delegateTo === 'paymentChannel') {
             logger.info(`[CallbackRouter] Delegating to PaymentChannel. Mode: ${result.mode}`);

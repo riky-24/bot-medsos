@@ -8,8 +8,6 @@ import { Sanitizer } from '../../../shared/utils/Sanitizer.js';
 export const MESSAGES = {
   // Greetings & Help
   WELCOME: (name = 'Kak') =>
-    ` *HALLO BOSQUE* \n` +
-    `━━━━━━━━━━━━━━━━━━━━\n` +
     `Halo *${name}*, mitra terpercaya untuk top-up game favorit Anda. Kami hadir dengan sistem otomatis 24 jam dan jaminan harga terbaik.\n\n` +
     `• Proses Cepat & Otomatis\n` +
     `• Berbagai Pilihan Pembayaran\n` +
