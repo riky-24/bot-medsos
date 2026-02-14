@@ -180,7 +180,20 @@ export class BotCore {
       await this.sendPort.setWebhook(`${webhookUrl}/webhook/telegram`, options);
       logger.info(`[BotCore] ✓ Webhook set successfully! (Secret: ${options.secret_token ? 'YES' : 'NO'})`);
     } catch (e) {
-      logger.warn(`[BotCore] ⚠️ Failed to set webhook (Non-fatal): ${e.message}`);
+      // Show detailed error for debugging - handle all edge cases
+      let errorDetail = 'Unknown error';
+      if (e) {
+        if (e.response?.body) {
+          errorDetail = JSON.stringify(e.response.body);
+        } else if (e.message) {
+          errorDetail = e.message;
+        } else if (typeof e === 'string') {
+          errorDetail = e;
+        } else {
+          errorDetail = JSON.stringify(e, Object.getOwnPropertyNames(e));
+        }
+      }
+      logger.warn(`[BotCore] ⚠️ Failed to set webhook (Non-fatal): ${errorDetail}`);
       // Do NOT throw. Allow app to start so valid webhooks can still be received if manually set.
       // throw e; 
     }
@@ -220,7 +233,20 @@ export class BotCore {
 
       logger.info('[BotCore] Bot profile (Description & Short Description) synced with Telegram');
     } catch (error) {
-      logger.warn(`[BotCore] Failed to sync bot profile: ${error.message}`);
+      // Show detailed error for debugging - handle all edge cases
+      let errorDetail = 'Unknown error';
+      if (error) {
+        if (error.response?.body) {
+          errorDetail = JSON.stringify(error.response.body);
+        } else if (error.message) {
+          errorDetail = error.message;
+        } else if (typeof error === 'string') {
+          errorDetail = error;
+        } else {
+          errorDetail = JSON.stringify(error, Object.getOwnPropertyNames(error));
+        }
+      }
+      logger.warn(`[BotCore] Failed to sync bot profile: ${errorDetail}`);
     }
   }
 

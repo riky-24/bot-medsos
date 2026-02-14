@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { GameProviderPort } from '../../../core/shared/ports/GameProviderPort.js';
 import logger from '../../../core/shared/services/Logger.js';
+import { AppConfig } from '../../../core/shared/config/AppConfig.js';
 
 /**
  * VIPResellerAdapter
@@ -18,7 +19,7 @@ export class VIPResellerAdapter extends GameProviderPort {
     super();
     this.apiKey = apiKey;
     this.apiId = apiId;
-    this.baseUrl = config.baseUrl || process.env.VIPRESELLER_BASE_URL || 'https://vip-reseller.co.id/api/game-feature';
+    this.baseUrl = config.baseUrl || AppConfig.gameProvider.vipreseller.baseUrl;
     this.timeout = config.timeout || 30000;
   }
 

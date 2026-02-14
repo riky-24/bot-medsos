@@ -6,6 +6,7 @@ import https from 'https';
 import os from 'os';
 import logger from '../../core/shared/services/Logger.js';
 import { InfrastructurePort } from '../../core/shared/ports/InfrastructurePort.js';
+import { AppConfig } from '../../core/shared/config/AppConfig.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '../../..');
@@ -13,8 +14,8 @@ const ROOT_DIR = path.resolve(__dirname, '../../..');
 export class CloudflareTunnelAdapter extends InfrastructurePort {
     constructor(config = {}) {
         super();
-        this.token = config.token || process.env.CLOUDFLARE_TUNNEL_TOKEN;
-        this.port = config.port || process.env.CALLBACK_PORT || 3000;
+        this.token = config.token || AppConfig.cloudflare.token;
+        this.port = config.port || AppConfig.app.port;
 
         // Determine binary name based on platform (add .exe for Windows)
         this.binName = os.platform() === 'win32' ? 'cloudflared.exe' : 'cloudflared';

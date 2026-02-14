@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { PaymentPort } from '../../../core/shared/ports/PaymentPort.js';
 import logger from '../../../core/shared/services/Logger.js';
+import { AppConfig } from '../../../core/shared/config/AppConfig.js';
 
 export class SakurupiahAdapter extends PaymentPort {
   /**
@@ -14,12 +15,12 @@ export class SakurupiahAdapter extends PaymentPort {
   constructor(apiKey, config = {}) {
     super(); // Call parent constructor
     this.apiKey = apiKey;
-    this.apiId = config.apiId || process.env.SAKURUPIAH_API_ID;
+    this.apiId = config.apiId || AppConfig.payment.sakurupiah.apiId;
 
     // Configurable URLs - no more hardcoded values
-    this.baseUrl = config.baseUrl || process.env.SAKURUPIAH_BASE_URL || "https://sakurupiah.id/api-sandbox";
-    this.callbackUrl = config.callbackUrl || process.env.PAYMENT_CALLBACK_URL || null;
-    this.returnUrl = config.returnUrl || process.env.PAYMENT_RETURN_URL || null;
+    this.baseUrl = config.baseUrl || AppConfig.payment.sakurupiah.baseUrl;
+    this.callbackUrl = config.callbackUrl || AppConfig.payment.callbackUrl;
+    this.returnUrl = config.returnUrl || AppConfig.payment.returnUrl;
   }
 
   generateSignature(merchantRef, amount, method = "QRIS") {

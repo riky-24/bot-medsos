@@ -132,22 +132,19 @@ async function bootstrap() {
         // 4. Initialize Core Application
         // BotCore Orchestrates the Use Cases
 
-        // Webhook secret - prioritize TELEGRAM_WEBHOOK_SECRET for consistency
-        const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET;
-
         const botConfig = {
-            adminChatId: process.env.ADMIN_CHAT_ID,
-            webhookUrl: process.env.WEBHOOK_URL || process.env.APP_BASE_URL || 'https://bot.opinionry.my.id',
+            adminChatId: AppConfig.app.adminChatId,
+            webhookUrl: AppConfig.telegram.webhookUrl,
             webhookOptions: {
-                secret_token: webhookSecret
+                secret_token: AppConfig.telegram.webhookSecret
             },
-            webhookSecret: webhookSecret,
+            webhookSecret: AppConfig.telegram.webhookSecret,
             // CRITICAL FIX: Spread MESSAGES object so handlers can access all message templates
             messages: {
                 ...MESSAGES,
                 // Allow env overrides for bot profile
-                BOT_DESCRIPTION: process.env.BOT_DESCRIPTION || MESSAGES.BOT_DESCRIPTION,
-                BOT_ABOUT: process.env.BOT_ABOUT || MESSAGES.BOT_ABOUT
+                BOT_DESCRIPTION: AppConfig.telegram.description || MESSAGES.BOT_DESCRIPTION,
+                BOT_ABOUT: AppConfig.telegram.about || MESSAGES.BOT_ABOUT
             }
         };
 
@@ -168,7 +165,7 @@ async function bootstrap() {
 
         // 5. Initialize Handlers (that need BotCore)
         const paymentCallbackHandler = new SakurupiahCallbackHandler(
-            process.env.SAKURUPIAH_API_KEY,
+            AppConfig.payment.sakurupiah.apiKey,
             bot
         );
 
@@ -177,17 +174,17 @@ async function bootstrap() {
 
         // 7. Setup Express Server (HTTP Entry Point)
         const app = express();
-        const PORT = process.env.PORT || 3000;
+        const PORT = AppConfig.app.port;
 
         // 6. Infrastructure (Hexagonal: Outer Layer)
         // Cloudflare Tunnel (Managed infrastructure)
         const tunnelAdapter = new CloudflareTunnelAdapter({
-            token: process.env.CLOUDFLARE_TUNNEL_TOKEN,
+            token: AppConfig.cloudflare.token,
             port: PORT
         });
 
         // SAFETY: Only auto-start tunnel if explicitly enabled in env
-        if (process.env.ENABLE_AUTO_TUNNEL === 'true') {
+        if (AppConfig.app.enableAutoTunnel) {
             await tunnelAdapter.start();
         } else {
             logger.info('[Infra] Cloudflare Tunnel auto-start disabled (ENABLE_AUTO_TUNNEL!=true)');

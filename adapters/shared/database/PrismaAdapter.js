@@ -2,6 +2,7 @@ import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
 import { DatabasePort } from '../../../core/shared/ports/DatabasePort.js';
 import logger from '../../../core/shared/services/Logger.js';
+import { AppConfig } from '../../../core/shared/config/AppConfig.js';
 
 /**
  * PrismaAdapter - Singleton Pattern
@@ -23,7 +24,7 @@ export class PrismaAdapter extends DatabasePort {
     }
 
     this.prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development'
+      log: AppConfig.environment.isDevelopment
         ? ['query', 'error', 'warn']
         : ['error'],
     });
