@@ -63,6 +63,15 @@ export const CACHE = {
 };
 
 // ===========================================
+// TIMEOUTS
+// ===========================================
+export const TIMEOUTS = {
+  API_TIMEOUT_MS: 15000,      // Default API timeout (15 seconds)
+  SHORT_TIMEOUT_MS: 5000,     // Short timeout for quick operations (5 seconds)
+  LONG_TIMEOUT_MS: 30000      // Long timeout for heavy operations (30 seconds)
+};
+
+// ===========================================
 // RETRY
 // ===========================================
 export const RETRY = {

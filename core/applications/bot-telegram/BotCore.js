@@ -156,9 +156,9 @@ export class BotCore {
     // Connect to database
     await this.databasePort.connect();
 
-    // Sync Payment Channels on Startup
+    // Sync Payment Channels on Startup (FORCED)
     try {
-      await this.paymentService.syncPaymentChannels();
+      await this.paymentService.syncPaymentChannels(true);  // force = true
     } catch (e) {
       logger.warn(`[BotCore] Failed to sync payment channels: ${e.message}`);
     }

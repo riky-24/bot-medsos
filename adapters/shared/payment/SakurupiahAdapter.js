@@ -157,17 +157,18 @@ export class SakurupiahAdapter extends PaymentPort {
 
   async getPaymentChannels() {
     try {
-      const formData = new FormData();
-      formData.append('api_id', this.apiId);
-      formData.append('method', 'list');
+      // Use URLSearchParams for application/x-www-form-urlencoded
+      const params = new URLSearchParams();
+      params.append('api_id', this.apiId);
+      params.append('method', 'list');
 
       const response = await fetch(`${this.baseUrl}/list-payment.php`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          // ...formData.getHeaders()
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${this.apiKey}`,  // Required by API docs
         },
-        body: formData
+        body: params.toString()
       });
 
       const text = await response.text();
@@ -188,7 +189,15 @@ export class SakurupiahAdapter extends PaymentPort {
       return data;
     } catch (e) {
       logger.error(`[Sakurupiah] List Payment Error: ${e.message}`);
-      return [];
+
+      // Return structured error response instead of empty array
+      // This helps PaymentService distinguish between "no channels" vs "API error"
+      return {
+        success: false,
+        data: [],
+        error: e.message,
+        errorType: e.code || 'UNKNOWN_ERROR'
+      };
     }
   }
 

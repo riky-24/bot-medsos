@@ -1,5 +1,5 @@
 import logger from './Logger.js';
-import { TIMEOUTS } from '../../applications/bot-telegram/useCases/handlers/HandlerConstants.js';
+import { TIMEOUTS } from '../config/constants.js';
 
 /**
  * TransactionSyncService

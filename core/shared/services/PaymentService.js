@@ -5,9 +5,8 @@
  * and adapters.
  */
 import logger from './Logger.js';
-
+import { TIMEOUTS } from '../config/constants.js';
 import { TransactionSyncService } from './TransactionSyncService.js';
-import { TIMEOUTS } from '../../applications/bot-telegram/useCases/handlers/HandlerConstants.js';
 
 export class PaymentService {
   /**
@@ -24,6 +23,9 @@ export class PaymentService {
 
     // Sub-service for status synchronization
     this.syncService = new TransactionSyncService(paymentPort, transactionRepository);
+
+    // Mutex for preventing concurrent sync operations
+    this._syncInProgress = false;
   }
 
   /**
@@ -37,27 +39,53 @@ export class PaymentService {
   }
 
   /**
+   * Safely parse JSON with fallback
+   * @private
+   * @param {string} jsonString - JSON string to parse
+   * @param {any} defaultValue - Default value if parse fails
+   * @returns {any}
+   */
+  _safeJsonParse(jsonString, defaultValue = null) {
+    try {
+      return jsonString ? JSON.parse(jsonString) : defaultValue;
+    } catch (e) {
+      logger.warn(`[PaymentService] JSON parse failed: ${e.message}`);
+      return defaultValue;
+    }
+  }
+
+  /**
+   * Map database channel to API format
+   * @private
+   * @param {Object} channel - Database channel object
+   * @returns {Object|null} API-formatted channel or null
+   */
+  _mapChannel(channel) {
+    if (!channel) return null;
+
+    return {
+      kode: channel.code,
+      nama: channel.name,
+      biaya: channel.fee,
+      minimal: channel.minAmount,
+      maksimal: channel.maxAmount,
+      metode: channel.method,
+      tipe: channel.type,
+      logo: channel.logo || null,
+      status: channel.status,
+      percent: channel.isPercent ? 'Percent' : 'Flat',
+      guideTitle: channel.guideTitle,
+      guideSteps: this._safeJsonParse(channel.guideSteps, null)
+    };
+  }
+
+  /**
    * Get specific payment channel by code
    */
   async getChannelByCode(code) {
     try {
       const channel = await this.channelRepo.findByCode(code);
-      if (!channel) return null;
-
-      return {
-        kode: channel.code,
-        nama: channel.name,
-        biaya: channel.fee,
-        minimal: channel.minAmount,
-        maksimal: channel.maxAmount,
-        metode: channel.method,
-        tipe: channel.type,
-        logo: channel.logo || null,
-        status: channel.status,
-        percent: channel.isPercent ? 'Percent' : 'Flat',
-        guideTitle: channel.guideTitle,
-        guideSteps: channel.guideSteps ? JSON.parse(channel.guideSteps) : null
-      };
+      return this._mapChannel(channel);
     } catch (error) {
       logger.error(`[PaymentService] Error getting channel ${code}:`, error);
       return null;
@@ -78,20 +106,7 @@ export class PaymentService {
       }
 
       if (channels && channels.length > 0) {
-        return channels.map(c => ({
-          kode: c.code,
-          nama: c.name,
-          biaya: c.fee,
-          minimal: c.minAmount,
-          maksimal: c.maxAmount,
-          metode: c.method,
-          tipe: c.type,
-          logo: c.logo,
-          status: c.status,
-          percent: c.isPercent ? 'Percent' : 'Flat',
-          guideTitle: c.guideTitle,
-          guideSteps: c.guideSteps ? JSON.parse(c.guideSteps) : null
-        }));
+        return channels.map(c => this._mapChannel(c)).filter(Boolean);
       }
 
       return [];
@@ -105,53 +120,111 @@ export class PaymentService {
    * Sync payment channels to database
    */
   async syncPaymentChannels(force = false) {
+    // Prevent concurrent sync operations (mutex lock)
+    if (this._syncInProgress) {
+      logger.debug('[PaymentService] Sync already in progress, skipping duplicate call...');
+      return;
+    }
+
+    const startTime = Date.now();
+
     try {
+      this._syncInProgress = true;
+      logger.info(`[PaymentService] 🔄 Starting payment channel sync (force=${force})...`);
+
       const TTL_HOURS = 6;
       const count = await this.channelRepo.count();
+      logger.debug(`[PaymentService] Current channels in DB: ${count}`);
 
       let shouldSync = force || count === 0;
       if (!shouldSync) {
         const sample = await this.channelRepo.findByCode('QRIS');
-        if (sample) {
+        if (sample && sample.lastSynced) {
           const hoursSinceSync = (Date.now() - new Date(sample.lastSynced).getTime()) / (1000 * 60 * 60);
           if (hoursSinceSync > TTL_HOURS) {
             shouldSync = true;
-            logger.info(`[PaymentService] Cache stale (${hoursSinceSync.toFixed(1)}h). Syncing...`);
+            logger.info(`[PaymentService] Cache stale (${hoursSinceSync.toFixed(1)}h old, TTL=${TTL_HOURS}h). Syncing...`);
+          } else {
+            logger.debug(`[PaymentService] Cache still fresh (${hoursSinceSync.toFixed(1)}h old). Skipping sync.`);
           }
+        } else if (count > 0) {
+          // Channels exist but QRIS missing or no timestamp? Force sync for safety
+          logger.warn('[PaymentService] QRIS channel missing or no sync timestamp. Forcing sync...');
+          shouldSync = true;
         }
       }
 
-      if (!shouldSync) return;
+      if (!shouldSync) {
+        logger.info('[PaymentService] ✓ Payment channels up to date (skipped sync)');
+        return;
+      }
 
-      logger.info('[PaymentService] Syncing channels from API...');
+      logger.info('[PaymentService] Fetching channels from payment gateway API...');
       const response = await this.paymentPort.getPaymentChannels();
+
+      // Check for structured error response from adapter
+      if (response && response.success === false) {
+        logger.error(`[PaymentService] Payment gateway error: ${response.error}`);
+        logger.error(`[PaymentService] Error type: ${response.errorType}`);
+        // Could notify admin or trigger alert here if needed
+        return;
+      }
+
       const channels = response.data || response;
 
-      if (!Array.isArray(channels)) return;
+      // Enhanced validation with better error logging
+      if (!Array.isArray(channels)) {
+        logger.error(`[PaymentService] Invalid API response format. Expected array, got: ${typeof channels}`);
+        logger.debug(`[PaymentService] Response preview: ${JSON.stringify(response).substring(0, 200)}`);
+        return;
+      }
+
+      if (channels.length === 0) {
+        logger.warn('[PaymentService] API returned 0 payment channels. Payment gateway might be down or misconfigured.');
+        return;
+      }
+
+      logger.info(`[PaymentService] Processing ${channels.length} channels from API...`);
+      let successCount = 0;
+      let errorCount = 0;
 
       for (const channel of channels) {
-        const isPercent = channel.percent === 'Percent';
-        await this.channelRepo.upsert({
-          code: channel.kode,
-          name: channel.nama,
-          minAmount: parseInt(channel.minimal) || 0,
-          maxAmount: parseInt(channel.maksimal) || 0,
-          feeFlat: isPercent ? 0 : (parseInt(channel.biaya) || 0),
-          feePercent: isPercent ? channel.biaya : null,
-          fee: channel.biaya,
-          isPercent: isPercent,
-          type: channel.tipe,
-          method: channel.metode,
-          logo: channel.logo,
-          status: channel.status,
-          guideTitle: channel.guide?.title || null,
-          guideSteps: channel.guide?.payment_guide
-            ? JSON.stringify(channel.guide.payment_guide.split(/\r?\n/).filter(line => line.trim().length > 0))
-            : null
-        });
+        try {
+          const isPercent = channel.percent === 'Percent';
+          await this.channelRepo.upsert({
+            code: channel.kode,
+            name: channel.nama,
+            minAmount: parseInt(channel.minimal, 10) || 0,
+            maxAmount: parseInt(channel.maksimal, 10) || 0,
+            feeFlat: isPercent ? 0 : (parseInt(channel.biaya, 10) || 0),
+            feePercent: isPercent ? channel.biaya : null,
+            fee: channel.biaya,
+            isPercent: isPercent,
+            type: channel.tipe,
+            method: channel.metode,
+            logo: channel.logo,
+            status: channel.status,
+            guideTitle: channel.guide?.title || null,
+            guideSteps: channel.guide?.payment_guide
+              ? JSON.stringify(channel.guide.payment_guide.split(/\r?\n/).filter(line => line.trim().length > 0))
+              : null
+          });
+          successCount++;
+        } catch (channelError) {
+          errorCount++;
+          logger.error(`[PaymentService] Failed to upsert channel ${channel.kode}: ${channelError.message}`);
+        }
       }
+
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      logger.info(`[PaymentService] ✅ Sync complete: ${successCount} channels synced, ${errorCount} errors, took ${duration}s`);
+
     } catch (error) {
-      logger.error('[PaymentService] Sync error:', error);
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+      logger.error(`[PaymentService] ❌ Sync failed after ${duration}s:`, error);
+    } finally {
+      // Always release mutex lock
+      this._syncInProgress = false;
     }
   }
 
@@ -245,7 +318,7 @@ export class PaymentService {
     if (!this.trxRepo) return;
     try {
       logger.info(`[PaymentService] Tracking messageId ${messageId} for ${merchantRef}`);
-      await this.trxRepo.update(merchantRef, { messageId: parseInt(messageId) });
+      await this.trxRepo.update(merchantRef, { messageId: parseInt(messageId, 10) });
     } catch (e) {
       logger.warn(`[PaymentService] Failed to update messageId: ${e.message}`);
     }

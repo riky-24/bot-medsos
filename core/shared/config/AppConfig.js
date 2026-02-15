@@ -73,7 +73,7 @@ export class AppConfig {
     }
 
     // Validate PORT adalah number
-    if (process.env.PORT && isNaN(parseInt(process.env.PORT))) {
+    if (process.env.PORT && isNaN(parseInt(process.env.PORT, 10))) {
       throw new Error('PORT must be a valid number');
     }
 
@@ -82,6 +82,45 @@ export class AppConfig {
     if (telegramToken && !telegramToken.includes(':')) {
       console.warn('⚠️  TELEGRAM_TOKEN might be invalid (expected format: 123456:ABC-DEF...)');
     }
+  }
+
+  /**
+   * Helper: Parse integer with validation
+   * @private
+   * @param {string} value - Value to parse
+   * @param {number} defaultValue - Default if parse fails
+   * @param {number} min - Minimum allowed value (optional)
+   * @param {number} max - Maximum allowed value (optional)
+   * @returns {number}
+   */
+  static _parseInt(value, defaultValue, min = null, max = null) {
+    if (!value) return defaultValue;
+    const parsed = parseInt(value, 10);
+    if (isNaN(parsed)) {
+      console.warn(`⚠️  Invalid number: "${value}", using default: ${defaultValue}`);
+      return defaultValue;
+    }
+    if (min !== null && parsed < min) {
+      console.warn(`⚠️  Value ${parsed} below minimum ${min}, using default: ${defaultValue}`);
+      return defaultValue;
+    }
+    if (max !== null && parsed > max) {
+      console.warn(`⚠️  Value ${parsed} above maximum ${max}, using default: ${defaultValue}`);
+      return defaultValue;
+    }
+    return parsed;
+  }
+
+  /**
+   * Helper: Get base URL (extracted to avoid circular dependency)
+   * @private
+   * @returns {string}
+   */
+  static _getBaseUrl() {
+    const isDev = (process.env.NODE_ENV || 'development') === 'development';
+    return process.env.APP_BASE_URL ||
+      process.env.WEBHOOK_URL ||
+      (isDev ? 'http://localhost:3000' : 'https://bot.opinionry.my.id');
   }
 
   /**
@@ -96,14 +135,10 @@ export class AppConfig {
    * @returns {Readonly<AppConfiguration>}
    */
   static get app() {
-    const isDev = this.environment.isDevelopment;
-
     return Object.freeze({
-      baseUrl: process.env.APP_BASE_URL ||
-        process.env.WEBHOOK_URL ||
-        (isDev ? 'http://localhost:3000' : 'https://bot.opinionry.my.id'),
-      port: parseInt(process.env.PORT) || 3000,
-      adminChatId: process.env.ADMIN_CHAT_ID,
+      baseUrl: this._getBaseUrl(),
+      port: this._parseInt(process.env.PORT, 3000, 1, 65535),
+      adminChatId: process.env.ADMIN_CHAT_ID ? parseInt(process.env.ADMIN_CHAT_ID, 10) : undefined,
       enableAutoTunnel: process.env.ENABLE_AUTO_TUNNEL === 'true'
     });
   }
@@ -144,9 +179,9 @@ export class AppConfig {
   static get database() {
     return Object.freeze({
       url: process.env.DATABASE_URL,
-      connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 20,
-      poolTimeout: parseInt(process.env.DB_POOL_TIMEOUT) || 10,
-      connectTimeout: parseInt(process.env.DB_CONNECT_TIMEOUT) || 5
+      connectionLimit: this._parseInt(process.env.DB_CONNECTION_LIMIT, 20, 1, 1000),
+      poolTimeout: this._parseInt(process.env.DB_POOL_TIMEOUT, 10, 1, 300),
+      connectTimeout: this._parseInt(process.env.DB_CONNECT_TIMEOUT, 5, 1, 60)
     });
   }
 
@@ -161,8 +196,8 @@ export class AppConfig {
    */
   static get retry() {
     return Object.freeze({
-      maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
-      retryDelay: parseInt(process.env.RETRY_DELAY) || 1000
+      maxRetries: this._parseInt(process.env.MAX_RETRIES, 3, 0, 10),
+      retryDelay: this._parseInt(process.env.RETRY_DELAY, 1000, 0, 60000)
     });
   }
 
@@ -177,8 +212,8 @@ export class AppConfig {
    */
   static get cache() {
     return Object.freeze({
-      ttl: parseInt(process.env.CACHE_TTL) || 3600,
-      enabled: process.env.CACHE_ENABLED !== 'false'
+      ttl: this._parseInt(process.env.CACHE_TTL, 3600, 0, 86400),
+      enabled: process.env.CACHE_ENABLED !== 'false' && process.env.CACHE_ENABLED !== '0'
     });
   }
 
@@ -198,9 +233,9 @@ export class AppConfig {
   static get telegram() {
     return Object.freeze({
       token: process.env.TELEGRAM_TOKEN,
-      webhookUrl: process.env.TELEGRAM_WEBHOOK_URL || this.app.baseUrl,
+      webhookUrl: process.env.TELEGRAM_WEBHOOK_URL || this._getBaseUrl(),
       webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET,
-      pollingInterval: parseInt(process.env.TELEGRAM_POLLING_INTERVAL) || 1000,
+      pollingInterval: this._parseInt(process.env.TELEGRAM_POLLING_INTERVAL, 1000, 100, 10000),
       description: process.env.BOT_DESCRIPTION,
       about: process.env.BOT_ABOUT
     });
@@ -220,13 +255,13 @@ export class AppConfig {
    * @returns {Readonly<PaymentConfig>}
    */
   static get payment() {
-    const baseUrl = this.app.baseUrl;
+    const baseUrl = this._getBaseUrl();
 
     return Object.freeze({
       sakurupiah: Object.freeze({
         apiKey: process.env.SAKURUPIAH_API_KEY,
         apiId: process.env.SAKURUPIAH_API_ID,
-        baseUrl: process.env.SAKURUPIAH_BASE_URL || 'https://sakurupiah.id/api-sanbox'
+        baseUrl: process.env.SAKURUPIAH_BASE_URL || 'https://sakurupiah.id/api-sanbox'  // typo in API docs!
       }),
       callbackUrl: process.env.PAYMENT_CALLBACK_URL || `${baseUrl}/callback/payment`,
       returnUrl: process.env.PAYMENT_RETURN_URL || `${baseUrl}/invoice`
@@ -299,8 +334,8 @@ export class AppConfig {
    */
   static get server() {
     return Object.freeze({
-      healthCheckPort: parseInt(process.env.HEALTH_CHECK_PORT) || 3001,
-      callbackPort: parseInt(process.env.CALLBACK_PORT) || this.app.port
+      healthCheckPort: this._parseInt(process.env.HEALTH_CHECK_PORT, 3001, 1, 65535),
+      callbackPort: this._parseInt(process.env.CALLBACK_PORT, this._parseInt(process.env.PORT, 3000, 1, 65535), 1, 65535)
     });
   }
 

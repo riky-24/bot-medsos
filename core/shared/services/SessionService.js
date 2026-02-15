@@ -45,7 +45,7 @@ export class SessionService {
   async setLastMessageId(chatId, messageId) {
     try {
       await this.sessionRepo.save(chatId, {
-        lastMsgId: parseInt(messageId)
+        lastMsgId: parseInt(messageId, 10)
       });
       logger.debug(`[SessionService] Updated lastMsgId for ${chatId}: ${messageId}`);
     } catch (error) {
